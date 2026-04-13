@@ -1,0 +1,631 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Markdown Export</title>
+  <style>
+    :root { color-scheme: light; }
+    body { font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; line-height: 1.65; color: #111827; margin: 0; background: #ffffff; }
+    .mk-wrap { max-width: 1080px; margin: 0 auto; padding: 32px; }
+    h1,h2,h3,h4,h5,h6 { margin: 1.1em 0 0.45em; line-height: 1.25; color: #0f172a; }
+    p, ul, ol, blockquote, pre, table { margin: 0.7em 0; }
+    ul,ol { padding-left: 1.35em; }
+    code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: #f3f4f6; padding: 0.12em 0.3em; border-radius: 4px; }
+    pre { background: #0b1020; color: #e5e7eb; border-radius: 8px; padding: 14px; overflow: auto; }
+    pre code { background: transparent; color: inherit; padding: 0; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th, td { border: 1px solid #d1d5db; padding: 8px 10px; vertical-align: top; }
+    th { background: #f9fafb; text-align: left; }
+    blockquote { margin-left: 0; padding: 10px 14px; border-left: 4px solid #9ca3af; background: #f8fafc; color: #374151; }
+    .callout-note { border-left-color: #2563eb; background: #eff6ff; }
+    .callout-important { border-left-color: #7c3aed; background: #f5f3ff; }
+    .callout-warning, .callout-caution { border-left-color: #b45309; background: #fffbeb; }
+    .callout-tip { border-left-color: #15803d; background: #f0fdf4; }
+    img { max-width: 100%; height: auto; display: block; margin: 10px auto; }
+    .mermaid { background: #ffffff; border-radius: 8px; padding: 6px; overflow: auto; }
+    .mermaid svg { max-width: 100%; height: auto; }
+    .mermaid-error { white-space: pre-wrap; background: #fff7ed; border: 1px solid #fdba74; color: #9a3412; border-radius: 8px; padding: 10px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    hr { border: 0; border-top: 1px solid #e5e7eb; margin: 1.25em 0; }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+</head>
+<body>
+  <div class="mk-wrap"><h1 id="co41-depo-bank-registration">🏦 CO41 — Depo Bank Registration</h1>
+<h2 id="1-module-overview">1. Module Overview</h2>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Detail</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Module Code</strong></td>
+<td>CO41</td>
+</tr>
+<tr>
+<td><strong>Module Title</strong></td>
+<td>Depository Bank Registry (예치은행 등록)</td>
+</tr>
+<tr>
+<td><strong>Services</strong></td>
+<td><code>COO4100</code> (Entry/Modify/Terminate), <code>COO4800</code> (Cancel)</td>
+</tr>
+<tr>
+<td><strong>Frontend</strong></td>
+<td><a href="file:///c:/Data/WOKEH-BANG/htm/co/CO41.html">CO41.html</a></td>
+</tr>
+<tr>
+<td><strong>DB Tables</strong></td>
+<td><code>afex_rch_base</code>, <code>afex_rch_bal</code>, <code>acom_coh_base</code>, <code>afex_rch_pend</code></td>
+</tr>
+<tr>
+<td><strong>Created</strong></td>
+<td>2004-05-08 by Y.H.S (COREBANK)</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="2-architecture-diagram">2. Architecture Diagram</h2>
+<div class="mermaid">
+sequenceDiagram
+    participant User as Branch Officer
+    participant HTML as CO41.html<br/>(ActiveX Frontend)
+    participant CN as CNService<br/>(Adaptor)
+    participant TUX as Tuxedo Server
+    participant SVC1 as COO4100<br/>(Entry)
+    participant SVC2 as COO4800<br/>(Cancel)
+    participant DB as Oracle DB
+
+    alt Entry / Update / Terminate
+        User->>HTML: Input Depo details
+        HTML->>HTML: f_onBlur() → BIC check + dup check
+        HTML->>CN: fActEntry() → ivkEntry.Call()
+        CN->>TUX: FML Buffer
+        TUX->>SVC1: COO4100(transb)
+        SVC1->>DB: Validate BIC in acom_coh_base
+        SVC1->>DB: Generate/check DEPO code
+        SVC1->>DB: INSERT/UPDATE afex_rch_base
+        SVC1->>DB: INSERT/UPDATE afex_rch_bal
+        SVC1-->>HTML: Return DEPO code
+    end
+
+    alt Cancel
+        User->>HTML: Select Depo to cancel
+        HTML->>CN: fActCancel() → ivkCancel.Call()
+        CN->>TUX: FML Buffer
+        TUX->>SVC2: COO4800(transb)
+        SVC2->>DB: Check balance = 0
+        SVC2->>DB: Check no pending transactions
+        SVC2->>DB: UPDATE sts = '9' in afex_rch_base
+        SVC2-->>HTML: Cancelled
+    end
+</div><hr>
+<h2 id="3-file-inventory">3. File Inventory</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>File</th>
+<th>Type</th>
+<th>Lines</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td><a href="file:///c:/Data/WOKEH-BANG/src/co/coo4100.pc">coo4100.pc</a></td>
+<td>Backend</td>
+<td>800</td>
+<td>Depo bank entry/modify/terminate</td>
+</tr>
+<tr>
+<td>2</td>
+<td><a href="file:///c:/Data/WOKEH-BANG/src/co/coo4800.pc">coo4800.pc</a></td>
+<td>Backend</td>
+<td>495</td>
+<td>Depo code cancel</td>
+</tr>
+<tr>
+<td>3</td>
+<td><a href="file:///c:/Data/WOKEH-BANG/htm/co/CO41.html">CO41.html</a></td>
+<td>Frontend</td>
+<td>908</td>
+<td>Depo registration screen</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="4-frontend-analysis-co41html">4. Frontend Analysis (CO41.html)</h2>
+<h3 id="41-page-configuration">4.1 Page Configuration</h3>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Title</strong></td>
+<td>Depository Bank registry (CO41)</td>
+</tr>
+<tr>
+<td><strong>CSS</strong></td>
+<td><code>/css/Base.css</code></td>
+</tr>
+<tr>
+<td><strong>Service Broker</strong></td>
+<td><code>/svct/CNService</code></td>
+</tr>
+<tr>
+<td><strong>TransCode</strong></td>
+<td><code>CO41</code></td>
+</tr>
+<tr>
+<td><strong>Entry Service</strong></td>
+<td><code>ivkEntry</code> → COO4100</td>
+</tr>
+<tr>
+<td><strong>Cancel Service</strong></td>
+<td><code>ivkCancel</code> → COO4800</td>
+</tr>
+</tbody></table>
+<h3 id="42-operation-modes">4.2 Operation Modes</h3>
+<table>
+<thead>
+<tr>
+<th><code>parent.OPStatus</code></th>
+<th>Mode</th>
+<th>Function Called</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>0</code></td>
+<td>Entry/Modify</td>
+<td><code>fActEntry()</code> → COO4100</td>
+</tr>
+<tr>
+<td><code>1</code></td>
+<td>Cancel</td>
+<td><code>fActCancel()</code> → COO4800</td>
+</tr>
+<tr>
+<td><code>6</code></td>
+<td>Reset/Clear</td>
+<td><code>fActCancelJob()</code></td>
+</tr>
+</tbody></table>
+<h3 id="43-radio-button-groups">4.3 Radio Button Groups</h3>
+<table>
+<thead>
+<tr>
+<th>Group Name</th>
+<th>Options</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>Proc_gb</code> (Processing Type)</td>
+<td><code>1</code>=Insert, <code>2</code>=Update, <code>9</code>=Terminate</td>
+<td>Controls new vs modify vs terminate</td>
+</tr>
+<tr>
+<td><code>Depo_Type</code></td>
+<td><code>1</code>=Vostro, <code>2</code>=Nostro (Domestic), <code>3</code>=Nostro (Overseas)</td>
+<td>Account type classification</td>
+</tr>
+</tbody></table>
+<h3 id="44-key-form-fields">4.4 Key Form Fields</h3>
+<table>
+<thead>
+<tr>
+<th>Element ID</th>
+<th>FML Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>txtDepo_Cd</code></td>
+<td><code>FICO41_CD</code></td>
+<td>DEPO Code (4 chars)</td>
+</tr>
+<tr>
+<td><code>cbbDepo_Ccy</code></td>
+<td><code>FICO41_CCY</code></td>
+<td>Currency (XML: <code>/xmldb/F2.xml</code>)</td>
+</tr>
+<tr>
+<td><code>txtDepo_Bkcd</code></td>
+<td><code>FICO41_BKCD</code></td>
+<td>BIC Code (11 chars)</td>
+</tr>
+<tr>
+<td><code>txtDepo_Nm</code></td>
+<td><code>FICO41_BKNM</code></td>
+<td>DEPO Bank Name</td>
+</tr>
+<tr>
+<td><code>txtCtry_Cd</code></td>
+<td><code>FICO41_CTRY_CD</code></td>
+<td>Country Code</td>
+</tr>
+<tr>
+<td><code>dtpDepo_IL</code></td>
+<td><code>FICO41_DEPO_IL</code></td>
+<td>Opening Date</td>
+</tr>
+<tr>
+<td><code>cedToday_Bs</code></td>
+<td><code>FICO41_TODAY_BS</code></td>
+<td>Current Balance</td>
+</tr>
+<tr>
+<td><code>txtAcct_No</code></td>
+<td><code>FICO41_ATTEN_NO</code></td>
+<td>Account Number</td>
+</tr>
+<tr>
+<td><code>txtAf_Cd</code></td>
+<td><code>FICO41_AF_CD</code></td>
+<td>After DEPO Code</td>
+</tr>
+<tr>
+<td><code>txtBok_bs_acct</code></td>
+<td><code>FICO41_CBS_CD</code></td>
+<td>Debit GL Code</td>
+</tr>
+<tr>
+<td><code>txtBok_bs_liab</code></td>
+<td><code>FICO41_DBS_CD</code></td>
+<td>Credit GL Code</td>
+</tr>
+<tr>
+<td><code>cbbBr_No</code></td>
+<td><code>FICO41_BR_NO</code></td>
+<td>Managing Branch</td>
+</tr>
+<tr>
+<td><code>cbbConfirm_YN</code></td>
+<td><code>FICO11_TC_YN</code></td>
+<td>Reconciliation Y/N</td>
+</tr>
+</tbody></table>
+<h3 id="45-client-side-validations">4.5 Client-Side Validations</h3>
+<table>
+<thead>
+<tr>
+<th>Function</th>
+<th>Validation</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>f_onBlur()</code> (cbbDepo_Ccy)</td>
+<td>Currency must be 3 chars</td>
+</tr>
+<tr>
+<td><code>f_onBlur()</code> (txtDepo_Bkcd)</td>
+<td>BIC: auto-append &#39;XXX&#39; for 8 chars, validate against <code>acom_coh_base</code></td>
+</tr>
+<tr>
+<td><code>f_dupCheckFromDB()</code></td>
+<td>Check duplicate in <code>afex_rch_base</code></td>
+</tr>
+<tr>
+<td><code>fCheckRadio()</code></td>
+<td><code>IDR</code> currency → auto-set confirm=N; Vostro → N; Nostro → Y</td>
+</tr>
+</tbody></table>
+<h3 id="46-popup-dialogs">4.6 Popup Dialogs</h3>
+<table>
+<thead>
+<tr>
+<th>Button</th>
+<th>Popup</th>
+<th>Purpose</th>
+<th>Returns</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>imgDepoCdBtn</code></td>
+<td><code>/iq/IQ63.html</code></td>
+<td>DEPO Code Inquiry</td>
+<td><code>[cd, ccy]</code></td>
+</tr>
+<tr>
+<td><code>imgDepoBkcdBtn</code></td>
+<td><code>/iq/IQ61.html</code></td>
+<td>BIC Code Inquiry</td>
+<td><code>[bic_cd]</code></td>
+</tr>
+<tr>
+<td><code>imgCtryCdBtn</code></td>
+<td><code>/iq/IQ64.html</code></td>
+<td>Country Code Inquiry</td>
+<td><code>[ctry_cd, ctry_nm]</code></td>
+</tr>
+<tr>
+<td>BS Account button</td>
+<td><code>/iq/IQ77.html</code></td>
+<td>Accounting Code Inquiry</td>
+<td><code>[ac_cd, enm]</code></td>
+</tr>
+</tbody></table>
+<h3 id="47-sql-queries-client-side-via-wassqldso">4.7 SQL Queries (Client-Side via wasSQLDSO)</h3>
+<pre><code class="language-sql">-- Data retrieval for existing DEPO
+SELECT base.cd, base.ccy, base.bknm, base.depo_type, base.bkcd,
+       base.ctry_cd, to_char(base.depo_il,'YYYY/MM/DD') depo_il,
+       NVL(ltrim(replace(to_char(bal.shw_clbs,'9,999,999,999,999,999.99'),' .00',' 0')), '0.00') shw_clbs,
+       base.atten_no, base.depo_etc1, base.make_il, base.chng_il,
+       base.mng_br, base.sts, base.af_cd, base.cbs_cd, base.depo_etc2,
+       base.depo_etc3, base.dbs_cd, base.recon_yn
+  FROM afex_rch_base base, afex_rch_bal bal
+ WHERE base.cd = bal.cd(+) AND base.ccy = bal.ccy(+)
+   AND base.make_il = bal.tr_il(+)
+   AND base.cd = :depo_cd AND base.ccy = :ccy;
+
+-- BIC validation
+SELECT co_bkcd FROM acom_coh_base WHERE co_bkcd = :bkcd;
+
+-- Duplicate check
+SELECT cd, bkcd FROM afex_rch_base WHERE cd = :ccy AND bkcd = :bkcd;
+
+-- GL code name lookup
+SELECT enm FROM acom_com_actcd WHERE br_no = '0000' AND ac_cd = :ac_cd;</code></pre><hr>
+<h2 id="5-coo4100-entrymodifyterminate-service">5. COO4100 — Entry/Modify/Terminate Service</h2>
+<h3 id="51-processing-flow">5.1 Processing Flow</h3>
+<div class="mermaid">
+flowchart TD
+    A[COO4100 START] --> B["CO41_Clear()
+    Init FICO41, RCH_BASE, RCH_BAL, COH_BASE"]
+    B --> C["CO41_Get()
+    cmg_base → Extract all FML fields"]
+    C --> D["CO41_1000_Inck()
+    Validate BIC + DEPO code + currency"]
+    D --> E{"proc_gb?"}
+    
+    E -->|"1" Insert| F["CO41E_2000_DBck()
+    Validate BIC in acom_coh_base
+    Auto-generate DEPO code"]
+    E -->|"2" Update| G["CO41U_2000_DBck()
+    Verify existing DEPO"]
+    E -->|"9" Terminate| H["CO41T_2000_DBck()
+    Verify existing DEPO for termination"]
+    
+    F --> I["CO41E_3000_Set()
+    INSERT rch_base + rch_bal"]
+    G --> J["CO41U_3000_Set()
+    UPDATE rch_base"]
+    H --> K["CO41T_3000_Set()
+    SET sts='9' or terminate"]
+    
+    I & J & K --> L["CO41_Put()
+    Return DEPO code"]
+    L --> M[TPRETURN MSG_SUCCESS]
+</div><h3 id="52-input-validation-co411000inck">5.2 Input Validation (<code>CO41_1000_Inck</code>)</h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Error Code</th>
+<th>Rule</th>
+<th>Message</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td>1002</td>
+<td><code>bkcd</code> must be 11 chars</td>
+<td>&quot;Depo BIC code is essential...&quot;</td>
+</tr>
+<tr>
+<td>2</td>
+<td>1003</td>
+<td><code>ccy</code> must be 3 chars</td>
+<td>&quot;Depo Currency code is essential...&quot;</td>
+</tr>
+</tbody></table>
+<h3 id="53-depo-code-auto-generation-insert-mode">5.3 DEPO Code Auto-Generation (Insert Mode)</h3>
+<pre><code class="language-sql">-- Generate next available DEPO code for the currency
+SELECT NVL(MAX(cd), '0000')
+  INTO :max_cd
+  FROM afex_rch_base
+ WHERE ccy = :ccy;
+-- Increment to get next code (string + 1)</code></pre><h3 id="54-insert-logic-co41e3000set">5.4 Insert Logic (<code>CO41E_3000_Set</code>)</h3>
+<pre><code class="language-">1. Copy FICO41 → RCH_BASE struct
+2. Set make_il = current date, sts = &quot;0&quot;
+3. INSERT INTO afex_rch_base
+   - If DUP → UPDATE
+4. INSERT INTO afex_rch_bal (init balance = 0)
+   - Set tr_il = make_il, shw_clbs = today_bs</code></pre><h3 id="55-output-parameters">5.5 Output Parameters</h3>
+<table>
+<thead>
+<tr>
+<th>FML Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>FOCO41_CD</code></td>
+<td>Generated/existing DEPO code</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="6-coo4800-cancel-service">6. COO4800 — Cancel Service</h2>
+<h3 id="61-processing-flow">6.1 Processing Flow</h3>
+<div class="mermaid">
+flowchart TD
+    A[COO4800 START] --> B["CO48_Clear()
+    Init FICO48, RCH_BASE, RCH_BAL, RCH_PEND, PCMOVRD, SIS_TRAN"]
+    B --> C["CO48_Get()
+    cmg_base → cmg_getovrd → Extract cd, ccy, bkcd"]
+    C --> D["CO48_1000_Inck()
+    Validate BIC + DEPO code + currency"]
+    D --> E["CO48_2000_DBck()
+    Multi-step validation"]
+    E --> F["CO48_3000_Set()
+    UPDATE sts = '9' in afex_rch_base"]
+    F --> G["CO48_4000_SIS()
+    SIS Audit Log"]
+    G --> H["CO48_Put()"]
+    H --> I[TPRETURN MSG_SUCCESS]
+</div><h3 id="62-input-parameters">6.2 Input Parameters</h3>
+<table>
+<thead>
+<tr>
+<th>FML Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>FICO48_CD</code></td>
+<td>DEPO Code (4 chars)</td>
+</tr>
+<tr>
+<td><code>FICO48_CCY</code></td>
+<td>Currency Code (3 chars)</td>
+</tr>
+<tr>
+<td><code>FICO48_BKCD</code></td>
+<td>BIC Code (11 chars)</td>
+</tr>
+</tbody></table>
+<h3 id="63-multi-step-cancellation-validation-co482000dbck">6.3 Multi-Step Cancellation Validation (<code>CO48_2000_DBck</code>)</h3>
+<div class="mermaid">
+flowchart TD
+    A[Start Validation] --> B{"afex_rch_base
+    exists?"}
+    B -->|No| B1["Error 1005:
+    Depo code not found"]
+    B -->|Yes| C{"sts == '9'?"}
+    C -->|Yes| C1["Error 1006:
+    Already cancelled"]
+    C -->|No| D{"afex_rch_bal
+    exists?"}
+    D -->|No| D1["Error 1007:
+    Balance info not found"]
+    D -->|Yes| E{"bal.sts == '9'?"}
+    E -->|Yes| E1["Error 1008:
+    Balance already cancelled"]
+    E -->|No| F{"shw_clbs != 0?"}
+    F -->|Yes| F1["Error 1009:
+    Balance exists, cannot cancel"]
+    F -->|No| G[Request Approval]
+</div><blockquote class="callout callout-important"><p>[!IMPORTANT]<br>A DEPO cannot be cancelled if it has a non-zero balance (<code>shw_clbs != 0</code>). This is a critical business rule to prevent data loss.</p>
+</blockquote><h3 id="64-pending-transaction-check-co48rchpendchk">6.4 Pending Transaction Check (<code>CO48_RchPend_Chk</code>)</h3>
+<pre><code class="language-sql">-- Currently commented out in main flow, but implemented:
+SELECT count(*) INTO :count
+  FROM afex_rch_pend
+ WHERE cd  = :cd
+   AND ccy = :ccy;
+-- If count &gt; 0 → Error 1014 &quot;Succession transaction exists&quot;</code></pre><blockquote class="callout callout-note"><p>[!NOTE]<br>The <code>CO48_RchPend_Chk()</code> function is implemented but <strong>not called</strong> in the main flow (commented out). It checks for pending transactions before allowing cancellation.</p>
+</blockquote><h3 id="65-cancellation-sql">6.5 Cancellation SQL</h3>
+<pre><code class="language-sql">UPDATE afex_rch_base
+   SET sts = '9'
+ WHERE ccy = :ccy AND cd = :cd;</code></pre><h3 id="66-error-codes">6.6 Error Codes</h3>
+<table>
+<thead>
+<tr>
+<th>Code</th>
+<th>Context</th>
+<th>Message</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1001</td>
+<td><code>cmg_base</code></td>
+<td>Common init error</td>
+</tr>
+<tr>
+<td>1002</td>
+<td>Inck</td>
+<td>BIC code must be 11 chars</td>
+</tr>
+<tr>
+<td>1003</td>
+<td>Inck</td>
+<td>DEPO code must be 4 chars</td>
+</tr>
+<tr>
+<td>1004</td>
+<td>Inck</td>
+<td>Currency must be 3 chars</td>
+</tr>
+<tr>
+<td>1005</td>
+<td>DBck</td>
+<td>DEPO code not found</td>
+</tr>
+<tr>
+<td>1006</td>
+<td>DBck</td>
+<td>Already cancelled</td>
+</tr>
+<tr>
+<td>1007</td>
+<td>DBck</td>
+<td>Balance info not found</td>
+</tr>
+<tr>
+<td>1008</td>
+<td>DBck</td>
+<td>Balance already cancelled</td>
+</tr>
+<tr>
+<td>1009</td>
+<td>DBck</td>
+<td><strong>Balance exists — cannot cancel</strong></td>
+</tr>
+<tr>
+<td>1010</td>
+<td>DBck</td>
+<td>Approval item add fail</td>
+</tr>
+<tr>
+<td>1011</td>
+<td>Set</td>
+<td>UPDATE FAIL</td>
+</tr>
+<tr>
+<td>1012</td>
+<td>SIS</td>
+<td>SIS log write fail</td>
+</tr>
+<tr>
+<td>1013</td>
+<td>Pend</td>
+<td>afex_rch_pend select error</td>
+</tr>
+<tr>
+<td>1014</td>
+<td>Pend</td>
+<td>Pending transactions exist</td>
+</tr>
+</tbody></table>
+<h3 id="67-sis-audit-log">6.7 SIS Audit Log</h3>
+<table>
+<thead>
+<tr>
+<th>SIS Field</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>ysloggb</code></td>
+<td><code>&quot;1&quot;</code> (Normal log)</td>
+</tr>
+<tr>
+<td><code>yscnlgb</code></td>
+<td><code>&quot;1&quot;</code> (Cancel flag)</td>
+</tr>
+<tr>
+<td><code>ysinpgb</code></td>
+<td><code>&quot;5&quot;</code> (Transaction type)</td>
+</tr>
+</tbody></table>
+<blockquote class="callout callout-warning"><p>[!WARNING]<br>The supervisor approval block is <strong>commented out</strong> in COO4800 (<code>#if 0</code> pattern around the PCMOVRD check). The approval request (<code>cmg_ovrditemadd</code>) is made during DBck but the flow-level check is disabled.</p>
+</blockquote></div>
+  <script>
+    mermaid.initialize({ startOnLoad: false, theme: 'neutral', securityLevel: 'loose' });
+    mermaid.run({ querySelector: '.mk-wrap .mermaid', suppressErrors: true }).catch(function(){});
+  </script>
+</body>
+</html>

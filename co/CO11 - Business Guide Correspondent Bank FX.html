@@ -1,0 +1,887 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Markdown Export</title>
+  <style>
+    :root { color-scheme: light; }
+    body { font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; line-height: 1.65; color: #111827; margin: 0; background: #ffffff; }
+    .mk-wrap { max-width: 1080px; margin: 0 auto; padding: 32px; }
+    h1,h2,h3,h4,h5,h6 { margin: 1.1em 0 0.45em; line-height: 1.25; color: #0f172a; }
+    p, ul, ol, blockquote, pre, table { margin: 0.7em 0; }
+    ul,ol { padding-left: 1.35em; }
+    code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: #f3f4f6; padding: 0.12em 0.3em; border-radius: 4px; }
+    pre { background: #0b1020; color: #e5e7eb; border-radius: 8px; padding: 14px; overflow: auto; }
+    pre code { background: transparent; color: inherit; padding: 0; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th, td { border: 1px solid #d1d5db; padding: 8px 10px; vertical-align: top; }
+    th { background: #f9fafb; text-align: left; }
+    blockquote { margin-left: 0; padding: 10px 14px; border-left: 4px solid #9ca3af; background: #f8fafc; color: #374151; }
+    .callout-note { border-left-color: #2563eb; background: #eff6ff; }
+    .callout-important { border-left-color: #7c3aed; background: #f5f3ff; }
+    .callout-warning, .callout-caution { border-left-color: #b45309; background: #fffbeb; }
+    .callout-tip { border-left-color: #15803d; background: #f0fdf4; }
+    img { max-width: 100%; height: auto; display: block; margin: 10px auto; }
+    .mermaid { background: #ffffff; border-radius: 8px; padding: 6px; overflow: auto; }
+    .mermaid svg { max-width: 100%; height: auto; }
+    .mermaid-error { white-space: pre-wrap; background: #fff7ed; border: 1px solid #fdba74; color: #9a3412; border-radius: 8px; padding: 10px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    hr { border: 0; border-top: 1px solid #e5e7eb; margin: 1.25em 0; }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+</head>
+<body>
+  <div class="mk-wrap"><h1 id="panduan-bisnis-correspondent-bank-registry">🏦 Panduan Bisnis: Correspondent Bank Registry</h1>
+<h3 id="penjelasan-untuk-orang-awam-dengan-contoh-dunia-nyata">Penjelasan Untuk Orang Awam — Dengan Contoh Dunia Nyata</h3>
+<hr>
+<h2 id="1-apa-itu-correspondent-bank">1. Apa Itu &quot;Correspondent Bank&quot;?</h2>
+<h3 id="analogi-sederhana">Analogi Sederhana</h3>
+<p>Bayangkan Anda tinggal di <strong>Jakarta</strong> dan ingin mengirim paket ke teman di <strong>New York</strong>.<br>Anda tidak bisa langsung terbang ke New York untuk mengantarkan paket itu.<br>Jadi Anda menggunakan <strong>JNE</strong> → yang bekerja sama dengan <strong>FedEx</strong> di Amerika.</p>
+<pre><code class="language-">Anda (Jakarta) → JNE → FedEx → Teman (New York)</code></pre><p><strong>Dalam dunia perbankan, hal yang sama terjadi dengan uang:</strong></p>
+<pre><code class="language-">Nasabah Bank A (Korea) → Bank A → Correspondent Bank (USA) → Bank Penerima (USA)</code></pre><blockquote><p><strong>Correspondent Bank = &quot;Bank Mitra&quot;</strong> yang ada di negara lain.<br>Mereka menjadi &quot;perpanjangan tangan&quot; bank kita di luar negeri,<br>karena bank kita tidak punya cabang di sana.</p>
+</blockquote><hr>
+<h3 id="definisi-resmi">Definisi Resmi</h3>
+<p><strong>Correspondent Bank (환거래은행)</strong> adalah bank di luar negeri yang memiliki <strong>perjanjian kerjasama</strong> dengan bank kita untuk:</p>
+<ul>
+<li>Melakukan <strong>transfer uang internasional</strong></li>
+<li>Menyimpan <strong>rekening antar bank</strong> (Nostro/Vostro)</li>
+<li>Memproses <strong>pembayaran lintas negara</strong></li>
+<li>Mengirim/menerima <strong>pesan SWIFT</strong></li>
+</ul>
+<hr>
+<h2 id="2-mengapa-perlu-sistem-registry">2. Mengapa Perlu Sistem Registry?</h2>
+<h3 id="contoh-masalah-tanpa-registry">Contoh Masalah Tanpa Registry</h3>
+<p>Bayangkan Anda seorang pegawai bank yang harus mengirim USD 50.000 ke bank di Jerman.</p>
+<p><strong>Tanpa registry</strong>, Anda harus:</p>
+<ul>
+<li>❌ Cari-cari di file kertas: &quot;Bank mana ya di Jerman yang kerja sama dengan kita?&quot;</li>
+<li>❌ Telepon ke sana-sini untuk minta kode BIC</li>
+<li>❌ Tidak tahu apakah bank tersebut masih aktif atau sudah batal kerja sama</li>
+<li>❌ Tidak tahu cara mengirim pesan — lewat SWIFT? Telex? Fax?</li>
+</ul>
+<p><strong>Dengan registry (CO11):</strong></p>
+<ul>
+<li>✅ Buka sistem, ketik kode BIC → semua informasi muncul</li>
+<li>✅ Status jelas: aktif, sudah diubah, atau sudah dibatalkan</li>
+<li>✅ Metode pengiriman sudah tercatat (SWIFT/Telex/Fax/Mail)</li>
+<li>✅ Kontak person lengkap dengan email dan telepon</li>
+</ul>
+<blockquote class="callout callout-important"><p>[!IMPORTANT]<br><strong>Registry = Buku Telepon Lengkap</strong> untuk semua bank mitra di seluruh dunia.<br>Tanpa ini, operasional Foreign Exchange akan kacau.</p>
+</blockquote><hr>
+<h2 id="3-contoh-dunia-nyata-skenario-sehari-hari">3. Contoh Dunia Nyata: Skenario Sehari-hari</h2>
+<h3 id="skenario-1-nasabah-mau-transfer-ke-usa">🔵 Skenario 1: Nasabah Mau Transfer ke USA</h3>
+<h3 id="slide-1">Slide 1</h3>
+<p><strong>Langkah 1 — Nasabah Datang ke Bank</strong></p>
+<p>Pak Budi datang ke Bank OK Korea di Seoul:</p>
+<blockquote><p>&quot;Saya mau kirim USD 10.000 ke rekening anak saya<br>di <strong>JPMorgan Chase</strong>, New York.&quot;</p>
+</blockquote><p>Petugas bank membuka sistem dan perlu tahu:</p>
+<ul>
+<li>Apakah JPMorgan Chase <strong>sudah terdaftar</strong> sebagai correspondent bank?</li>
+<li>Apa <strong>kode BIC</strong>-nya? → <code>CHASUS33XXX</code></li>
+<li>Lewat apa mengirim pesan transfer? → <strong>SWIFT</strong></li>
+<li>Ke rekening <strong>Nostro</strong> mana uangnya dikirim?</li>
+</ul>
+<hr>
+<h3 id="slide-2">Slide 2</h3>
+<p><strong>Langkah 2 — Petugas Cek di CO11 Registry</strong></p>
+<p>Petugas ketik <code>CHASUS33XXX</code> di layar CO11:</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Isi</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>BIC Code</td>
+<td><code>CHASUS33XXX</code></td>
+</tr>
+<tr>
+<td>Bank Name</td>
+<td>JPMORGAN CHASE BANK N.A.</td>
+</tr>
+<tr>
+<td>Classification</td>
+<td><strong>Corres</strong> (bank mitra resmi)</td>
+</tr>
+<tr>
+<td>Country</td>
+<td>US — UNITED STATES</td>
+</tr>
+<tr>
+<td>City</td>
+<td>NEW YORK</td>
+</tr>
+<tr>
+<td>Sending Option</td>
+<td><strong>SWIFT</strong></td>
+</tr>
+<tr>
+<td>DEPO Code</td>
+<td><code>D001</code></td>
+</tr>
+<tr>
+<td>Status</td>
+<td><strong>0 = Aktif</strong> ✅</td>
+</tr>
+</tbody></table>
+<p>Semua informasi sudah lengkap! Transfer bisa diproses.</p>
+<hr>
+<h3 id="slide-3">Slide 3</h3>
+<p><strong>Langkah 3 — Sistem Kirim SWIFT Message</strong></p>
+<p>Karena di registry tercatat &quot;Sending Option = <strong>SWIFT</strong>&quot;,<br>sistem otomatis membuat pesan MT103 (transfer dana):</p>
+<pre><code class="language-">{1:F01OKBKKRSEAXXX...}
+{2:O103...}
+{4:
+:20:REF20260406001
+:23B:CRED
+:32A:260406USD10000,
+:50K:/1234567890
+PAK BUDI
+SEOUL, KOREA
+:59:/9876543210
+ANAK PAK BUDI
+NEW YORK, USA
+:71A:SHA
+-}</code></pre><p>Pesan ini dikirim ke CHASUS33XXX (JPMorgan Chase) via jaringan SWIFT.</p>
+<hr>
+<h3 id="skenario-2-mendaftarkan-bank-mitra-baru">🟢 Skenario 2: Mendaftarkan Bank Mitra Baru</h3>
+<h3 id="slide-1">Slide 1</h3>
+<p><strong>Situasi — Bank Baru Mau Kerja Sama</strong></p>
+<p>Bank OK Korea baru saja menandatangani perjanjian dengan<br><strong>Standard Chartered Bank, Singapore</strong>.</p>
+<p>Petugas FX Dept harus mendaftarkan bank ini ke sistem<br>agar bisa digunakan untuk transaksi.</p>
+<hr>
+<h3 id="slide-2">Slide 2</h3>
+<p><strong>Pengisian Data di CO11 (Entry/Register)</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Isi</th>
+<th>Penjelasan</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>BIC Code</td>
+<td><code>SCBLSG22XXX</code></td>
+<td>Kode unik bank di SWIFT</td>
+</tr>
+<tr>
+<td>Bank Name 1</td>
+<td><code>STANDARD CHARTERED BANK</code></td>
+<td>Nama resmi</td>
+</tr>
+<tr>
+<td>Classification</td>
+<td><code>1</code> = <strong>Corres</strong></td>
+<td>Karena sudah ada perjanjian formal</td>
+</tr>
+<tr>
+<td>Sending Option</td>
+<td><code>S</code> = <strong>SWIFT</strong></td>
+<td>Komunikasi via SWIFT</td>
+</tr>
+<tr>
+<td>Country Code</td>
+<td><code>SG</code></td>
+<td>Singapore</td>
+</tr>
+<tr>
+<td>City</td>
+<td><code>SINGAPORE</code></td>
+<td></td>
+</tr>
+<tr>
+<td>B-Key Exchange</td>
+<td>✅ Checked</td>
+<td>Sudah tukar kunci keamanan</td>
+</tr>
+<tr>
+<td>B-Key Date</td>
+<td><code>2026/04/01</code></td>
+<td>Tanggal tukar kunci</td>
+</tr>
+<tr>
+<td>DEPO Y/N</td>
+<td><code>Yes</code></td>
+<td>Ada rekening titipan</td>
+</tr>
+<tr>
+<td>DEPO Code</td>
+<td><code>D015</code></td>
+<td>Kode rekening Nostro</td>
+</tr>
+<tr>
+<td>Account No</td>
+<td><code>01-2345-6789</code></td>
+<td>Nomor rekening Nostro</td>
+</tr>
+<tr>
+<td>H.O. Y/N</td>
+<td><code>Yes</code></td>
+<td>Ini kantor pusat</td>
+</tr>
+<tr>
+<td>Corres Est.</td>
+<td><code>2026/04/01</code></td>
+<td>Tanggal kerja sama dimulai</td>
+</tr>
+<tr>
+<td>Corres Est. By</td>
+<td><code>Our Request</code></td>
+<td>Kita yang mengajukan</td>
+</tr>
+</tbody></table>
+<hr>
+<h3 id="slide-3">Slide 3</h3>
+<p><strong>Apa yang Terjadi di Belakang Layar</strong></p>
+<p>Ketika petugas klik <strong>Execute</strong>:</p>
+<div class="mermaid">
+sequenceDiagram
+    participant Petugas as 👤 Petugas FX
+    participant Screen as 🖥️ CO11 Screen
+    participant Server as ⚙️ Server (COO1100)
+    participant DB as 🗄️ Database
+    participant History as 📋 History Table
+
+    Petugas->>Screen: Isi data, klik Execute
+    Screen->>Screen: Validasi: BIC 11 digit? ✓
+    Screen->>Server: Kirim 76 parameter via FML
+    Server->>Server: Cek input (15 aturan validasi)
+    Server->>DB: Cek: bank sudah terdaftar?
+    DB-->>Server: Belum ada
+    Server->>DB: INSERT ke acom_coh_base
+    DB->>History: Trigger → simpan snapshot harian
+    Server-->>Screen: "Berhasil didaftarkan ✅"
+    Screen-->>Petugas: Tampil pesan sukses
+</div><hr>
+<h3 id="skenario-3-membatalkan-bank-mitra">🔴 Skenario 3: Membatalkan Bank Mitra</h3>
+<h3 id="slide-1">Slide 1</h3>
+<p><strong>Situasi — Bank Mitra Bermasalah</strong></p>
+<p>Standard Chartered Singapore ternyata <strong>terkena sanksi</strong><br>dari regulator internasional.</p>
+<p>Bank OK Korea harus <strong>membatalkan</strong> kerja sama segera<br>agar tidak terlibat masalah compliance.</p>
+<hr>
+<h3 id="slide-2">Slide 2</h3>
+<p><strong>Proses Cancel di CO11</strong></p>
+<ol>
+<li>Petugas buka layar CO11</li>
+<li>Ketik BIC <code>SCBLSG22XXX</code></li>
+<li>Data bank muncul otomatis dari database</li>
+<li>Pilih mode <strong>Cancel</strong> dari toolbar</li>
+<li>Klik <strong>Execute</strong></li>
+</ol>
+<p><strong>Yang terjadi:</strong></p>
+<pre><code class="language-">1. Sistem VALIDASI → BIC harus 11 karakter ✓
+2. Sistem CEK DB → Bank ini terdaftar? ✓
+3. Sistem CEK DB → Belum dibatalkan sebelumnya? ✓
+4. 🔒 MINTA PERSETUJUAN ATASAN (책임자승인)
+   → Berbeda dengan Entry yang langsung jalan!
+   → Cancel butuh approval karena dampaknya besar
+5. Atasan approve ✓
+6. UPDATE status menjadi &quot;9&quot; (Cancelled)
+7. SIS audit log dicatat</code></pre><hr>
+<h3 id="slide-3">Slide 3</h3>
+<p><strong>Mengapa Cancel Butuh Persetujuan Atasan?</strong></p>
+<p>Karena <strong>dampaknya sangat besar</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>Dampak</th>
+<th>Penjelasan</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>🚫 Transfer gagal</td>
+<td>Semua transfer ke bank itu akan ditolak sistem</td>
+</tr>
+<tr>
+<td>💰 Rekening beku</td>
+<td>Rekening Nostro/Vostro tidak bisa digunakan</td>
+</tr>
+<tr>
+<td>📄 Kontrak batal</td>
+<td>Perjanjian hukum harus ditinjau ulang</td>
+</tr>
+<tr>
+<td>🔗 Efek berantai</td>
+<td>Bank lain yang pakai bank itu sebagai perantara juga terdampak</td>
+</tr>
+</tbody></table>
+<blockquote><p>Maka dari itu, <strong>cancel tidak boleh dilakukan sembarangan</strong><br>oleh satu orang saja — harus ada <strong>dual control</strong> (pembuat + penyetuju).</p>
+</blockquote><hr>
+<h2 id="4-penjelasan-setiap-bagian-data">4. Penjelasan Setiap Bagian Data</h2>
+<h3 id="41-identitas-bank">4.1 Identitas Bank</h3>
+<table>
+<thead>
+<tr>
+<th>Data</th>
+<th>Contoh</th>
+<th>Mengapa Perlu?</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>BIC Code</strong></td>
+<td><code>CHASUS33XXX</code></td>
+<td>Seperti &quot;KTP&quot; bank di dunia internasional. Setiap bank punya kode unik 11 digit yang terdaftar di SWIFT.</td>
+</tr>
+<tr>
+<td><strong>Bank Name</strong></td>
+<td>JPMORGAN CHASE BANK N.A.</td>
+<td>Nama resmi untuk verifikasi dan korespondensi. Ada 2 baris karena beberapa bank namanya panjang.</td>
+</tr>
+<tr>
+<td><strong>Short Name</strong></td>
+<td>JPMORGAN</td>
+<td>Nama pendek untuk tampilan di layar yang sempit.</td>
+</tr>
+</tbody></table>
+<h3 id="42-klasifikasi-classification">4.2 Klasifikasi (Classification)</h3>
+<table>
+<thead>
+<tr>
+<th>Kode</th>
+<th>Nama</th>
+<th>Penjelasan Awam</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>1 = Corres</strong></td>
+<td>Correspondent</td>
+<td>Bank mitra resmi. Ada perjanjian formal, ada rekening bersama. Seperti &quot;partner bisnis tetap&quot;.</td>
+</tr>
+<tr>
+<td><strong>2 = Non-Corres</strong></td>
+<td>Non-Correspondent</td>
+<td>Bank yang dikenal tapi belum ada perjanjian. Seperti &quot;kenalan biasa, belum kerja sama resmi&quot;.</td>
+</tr>
+<tr>
+<td><strong>3 = Cust</strong></td>
+<td>Customer</td>
+<td>Bukan bank, tapi perusahaan/individu. Seperti &quot;pelanggan yang sering transfer internasional&quot;.</td>
+</tr>
+</tbody></table>
+<p><strong>Contoh dunia nyata:</strong></p>
+<blockquote><p>Bank OK Korea punya perjanjian resmi dengan <strong>Deutsche Bank</strong> di Jerman (= <strong>Corres</strong>).<br>Tapi mereka juga sering berurusan dengan <strong>Bank of China</strong> walaupun belum ada MoU (= <strong>Non-Corres</strong>).<br>Lalu ada perusahaan Samsung yang sering transfer ke luar negeri (= <strong>Customer</strong>).</p>
+</blockquote><hr>
+<h3 id="43-sending-option-metode-pengiriman-pesan">4.3 Sending Option (Metode Pengiriman Pesan)</h3>
+<table>
+<thead>
+<tr>
+<th>Kode</th>
+<th>Metode</th>
+<th>Penjelasan</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>S = SWIFT</strong></td>
+<td>🌐 SWIFT Network</td>
+<td>Standar internasional. Paling aman, paling cepat. 99% bank modern pakai ini.</td>
+</tr>
+<tr>
+<td><strong>T = Telex</strong></td>
+<td>📠 Telex</td>
+<td>Teknologi lama (sejak 1960-an). Masih dipakai beberapa bank di negara berkembang.</td>
+</tr>
+<tr>
+<td><strong>F = Fax</strong></td>
+<td>📄 Fax</td>
+<td>Untuk bank yang belum punya SWIFT. Kurang aman karena bisa dipalsukan.</td>
+</tr>
+<tr>
+<td><strong>M = Mail</strong></td>
+<td>✉️ Surat Pos</td>
+<td>Paling lambat. Untuk dokumen fisik yang harus dikirim aslinya.</td>
+</tr>
+</tbody></table>
+<blockquote class="callout callout-note"><p>[!NOTE]<br>Jika metode pengiriman adalah <strong>Telex</strong>, maka <strong>nomor telex wajib diisi</strong>.<br>Ini sudah ter-validasi otomatis di sistem (error 1008).</p>
+</blockquote><hr>
+<h3 id="44-keamanan-pertukaran-exchange-keys">4.4 Keamanan Pertukaran (Exchange Keys)</h3>
+<p>Bagian ini sangat penting untuk <strong>mencegah penipuan</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Analogi Awam</th>
+<th>Penjelasan Teknis</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>B-Key Exchange</strong></td>
+<td>Seperti tukar <strong>PIN rahasia</strong></td>
+<td>Bilateral Key — kunci enkripsi bersama untuk memverifikasi pesan SWIFT asli atau palsu</td>
+</tr>
+<tr>
+<td><strong>Test-Key</strong></td>
+<td>Seperti tukar <strong>kode OTP</strong></td>
+<td>Kode uji coba yang dipakai sebelum transaksi besar pertama kali</td>
+</tr>
+<tr>
+<td><strong>Signature Book</strong></td>
+<td>Seperti tukar <strong>contoh tanda tangan</strong></td>
+<td>Buku spesimen tanda tangan pejabat bank yang berwenang</td>
+</tr>
+<tr>
+<td><strong>Terms &amp; Conditions</strong></td>
+<td>Seperti <strong>kontrak kerja sama</strong></td>
+<td>Dokumen syarat dan ketentuan kerja sama resmi</td>
+</tr>
+<tr>
+<td><strong>Annual Report</strong></td>
+<td>Seperti <strong>laporan keuangan tahunan</strong></td>
+<td>Untuk menilai kesehatan keuangan bank mitra</td>
+</tr>
+</tbody></table>
+<p><strong>Mengapa tanggal pertukaran penting?</strong><br>Karena kunci keamanan punya <strong>masa berlaku</strong>. Kalau sudah lama tidak diperbarui, bisa jadi tidak valid lagi.</p>
+<pre><code class="language-">✅ B-Key Exchange: Ya, tanggal 2026/01/15
+   → Artinya: Kunci keamanan sudah ditukar pada 15 Jan 2026
+
+❌ B-Key Exchange: Ya, tapi TANPA tanggal
+   → DITOLAK SISTEM! (error 1010)
+   → Logikanya: &quot;Anda bilang sudah tukar kunci, tapi kapan?&quot;</code></pre><hr>
+<h3 id="45-depo-depository-rekening-titipan">4.5 DEPO (Depository / Rekening Titipan)</h3>
+<h4 id="apa-itu-nostro-dan-vostro">Apa itu Nostro dan Vostro?</h4>
+<pre><code class="language-">Bank OK Korea punya rekening di JPMorgan (USD)
+  → Bagi Bank OK Korea: ini &quot;Nostro&quot; (uang KAMI di MEREKA)
+  → Bagi JPMorgan:      ini &quot;Vostro&quot; (uang MEREKA di KAMI)</code></pre><table>
+<thead>
+<tr>
+<th>Istilah</th>
+<th>Arti</th>
+<th>Analogi</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Nostro</strong></td>
+<td>&quot;Milik kami&quot; (Latin)</td>
+<td>Seperti Anda punya tabungan di bank lain kota</td>
+</tr>
+<tr>
+<td><strong>Vostro</strong></td>
+<td>&quot;Milik Anda&quot; (Latin)</td>
+<td>Seperti teman Anda punya tabungan di bank Anda</td>
+</tr>
+<tr>
+<td><strong>DEPO Code</strong></td>
+<td>Kode pengelompokan</td>
+<td>Kode singkat untuk mengidentifikasi rekening titipan</td>
+</tr>
+</tbody></table>
+<p><strong>Contoh nyata:</strong></p>
+<pre><code class="language-">Bank OK Korea memiliki 3 rekening Nostro:
+┌─────────────┬─────────────────┬───────────┬──────────────┐
+│ DEPO Code   │ Bank            │ Currency  │ Account No   │
+├─────────────┼─────────────────┼───────────┼──────────────┤
+│ D001        │ JPMorgan, NYC   │ USD       │ 400-123-456  │
+│ D002        │ Deutsche Bank   │ EUR       │ DE89-3704    │
+│ D003        │ Bank of Tokyo   │ JPY       │ 8765-4321    │
+└─────────────┴─────────────────┴───────────┴──────────────┘</code></pre><blockquote class="callout callout-important"><p>[!IMPORTANT]<br>Jika <strong>DEPO = Yes</strong> tapi kode DEPO <strong>kosong</strong> → sistem akan <strong>tolak</strong> (error 1015).<br>Logikanya: &quot;Anda bilang ada rekening titipan, tapi mana kodenya?&quot;</p>
+<p>Sebaliknya, jika <strong>DEPO = No</strong> tapi kode DEPO <strong>diisi</strong> → sistem cek di tabel <code>afex_rch_base</code><br>apakah ada transaksi yang masih berjalan. Kalau ada, harus <strong>diselesaikan dulu</strong> (error 1018).</p>
+</blockquote><hr>
+<h3 id="46-contact-person-1-5">4.6 Contact Person (1-5)</h3>
+<p>Registry ini menyimpan hingga <strong>5 kontak person</strong> per bank:</p>
+<pre><code class="language-">┌────────────────────────────────────────────────────┐
+│  Contact Person 1 (Primary)                        │
+│  ─────────────────────────────────────────────     │
+│  Name:    JOHN SMITH                               │
+│  Email:   john.smith@jpmorgan.com                  │
+│  Phone:   +1-212-555-0100                          │
+│  Dept:    FOREIGN EXCHANGE OPERATIONS              │
+│  Branch:  NEW YORK HEADQUARTERS                    │
+│  Duty:    FX SETTLEMENT MANAGER                    │
+│  Head:    TREASURY &amp; TRADE SOLUTIONS               │
+├────────────────────────────────────────────────────┤
+│  Contact Person 2                                  │
+│  Name:    SARAH JOHNSON                            │
+│  Email:   sarah.j@jpmorgan.com                     │
+│  Phone:   +1-212-555-0200                          │
+│  (backup contact jika Person 1 tidak bisa dihubungi)│
+└────────────────────────────────────────────────────┘</code></pre><p><strong>Mengapa perlu 5 kontak?</strong><br>Karena dalam operasional perbankan 24/7, selalu harus ada <strong>cadangan</strong>:</p>
+<ul>
+<li>Person 1 sedang cuti → hubungi Person 2</li>
+<li>Person 2 meeting → hubungi Person 3</li>
+<li>Darurat tengah malam → ada Person yang standby</li>
+</ul>
+<hr>
+<h3 id="47-status-code-condsts-siklus-hidup-data">4.7 Status Code (cond_sts) — Siklus Hidup Data</h3>
+<div class="mermaid">
+stateDiagram-v2
+    [*] --> Active_0: Petugas isi data → Execute
+    Active_0 --> Modified_1: Petugas ubah data → Execute
+    Modified_1 --> Modified_1: Bisa diubah berkali-kali
+    Active_0 --> Cancelled_9: Petugas cancel → Atasan approve
+    Modified_1 --> Cancelled_9: Petugas cancel → Atasan approve
+    Cancelled_9 --> [*]: Tidak bisa digunakan lagi
+
+    state "Status 0 = Baru/Aktif" as Active_0
+    state "Status 1 = Sudah Diubah" as Modified_1  
+    state "Status 9 = Dibatalkan" as Cancelled_9
+</div><table>
+<thead>
+<tr>
+<th>Status</th>
+<th>Arti</th>
+<th>Akibat</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>0</strong></td>
+<td>Baru didaftarkan</td>
+<td>Bisa digunakan untuk transaksi</td>
+</tr>
+<tr>
+<td><strong>1</strong></td>
+<td>Sudah pernah dimodifikasi</td>
+<td>Tetap aktif, tetap bisa digunakan</td>
+</tr>
+<tr>
+<td><strong>9</strong></td>
+<td>Dibatalkan</td>
+<td>⛔ <strong>Tidak bisa digunakan</strong> untuk transaksi apapun</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="5-mengapa-setiap-validasi-itu-penting">5. Mengapa Setiap Validasi Itu Penting?</h2>
+<h3 id="validasi-penjaga-keamanan-data">Validasi = Penjaga Keamanan Data</h3>
+<p>Setiap aturan validasi ada <strong>alasan bisnisnya</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Aturan</th>
+<th>Alasan Bisnis</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td>BIC harus 11 karakter</td>
+<td>Standar SWIFT internasional. Kalau salah, transfer bisa nyasar ke bank lain!</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Klasifikasi harus 1/2/3</td>
+<td>Menentukan apakah transaksi boleh jalan. Corres bisa semua, Non-Corres terbatas.</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Sending Option harus S/T/F/M</td>
+<td>Sistem harus tahu <strong>cara mengirim pesan</strong>. Kalau kosong, pesan tidak terkirim.</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Country Code wajib isi</td>
+<td>Untuk kepatuhan regulasi — setiap negara punya <strong>aturan transfer berbeda</strong> (anti-money laundering, sanksi, dll).</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Bank Name wajib isi</td>
+<td>Untuk verifikasi manual oleh petugas. Kode BIC saja tidak cukup.</td>
+</tr>
+<tr>
+<td>6</td>
+<td>ABA harus angka</td>
+<td>ABA adalah kode routing bank di Amerika. Format-nya memang hanya angka.</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Telex No. wajib jika via Telex</td>
+<td>Tidak mungkin kirim telex tanpa nomor tujuan!</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Exchange Method valid (F337)</td>
+<td>Harus standar yang diakui, tidak boleh sembarang.</td>
+</tr>
+<tr>
+<td>9–13</td>
+<td>Checkbox-tanggal harus cocok</td>
+<td>Jangan bilang &quot;sudah tukar kunci&quot; tapi tidak ada bukti tanggalnya.</td>
+</tr>
+<tr>
+<td>14</td>
+<td>DEPO wajib jika &quot;Yes&quot;</td>
+<td>Tidak bisa bilang ada rekening titipan tanpa kode rekening.</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="6-alur-kerja-harian-real-world-workflow">6. Alur Kerja Harian (Real-World Workflow)</h2>
+<div class="mermaid">
+flowchart TB
+    subgraph PAGI ["🌅 Pagi — Operasional Dimulai"]
+        A[Petugas FX buka sistem CO11]
+        B[Cek email: ada bank baru mau kerja sama?]
+        C{Ada bank baru?}
+        C -->|Ya| D[Register bank baru di CO11]
+        C -->|Tidak| E[Lanjut kerja biasa]
+    end
+
+    subgraph SIANG ["☀️ Siang — Transaksi Berjalan"]
+        F[Nasabah minta transfer ke luar negeri]
+        G[Sistem cek: bank tujuan terdaftar?]
+        G -->|Terdaftar & Aktif| H[OK, proses transfer ✅]
+        G -->|Tidak terdaftar| I[Tolak! Harus daftar dulu ❌]
+        G -->|Status = 9 Cancel| J[Tolak! Bank sudah dibatalkan ❌]
+    end
+
+    subgraph SORE ["🌆 Sore — Perubahan Data"]
+        K[Ada perubahan alamat bank mitra]
+        L[Update data di CO11]
+        M[Status berubah: 0 → 1]
+    end
+
+    subgraph DARURAT ["🚨 Darurat — Cancel Diperlukan"]
+        N[Regulasi melarang transaksi ke bank X]
+        O[Petugas cancel di CO11]
+        P[Sistem minta persetujuan atasan]
+        Q[Atasan approve]
+        R[Status berubah → 9]
+        S[Semua transaksi ke bank X otomatis ditolak]
+    end
+
+    A --> B --> C
+    D --> E
+    E --> F --> G
+    H --> K --> L --> M
+    N --> O --> P --> Q --> R --> S
+</div><hr>
+<h2 id="7-hubungan-dengan-module-lain">7. Hubungan dengan Module Lain</h2>
+<p>CO11 <strong>bukan modul yang berdiri sendiri</strong>. Ia adalah <strong>fondasi</strong> dari keseluruhan sistem Foreign Exchange:</p>
+<div class="mermaid">
+flowchart LR
+    CO11["🏦 CO11<br/>Correspondent Bank<br/>Registry<br/><i>(Master Data)</i>"]
+    
+    CO12["📋 CO12<br/>Batch Exchange<br/>Registration"]
+    CO21["📊 CO21<br/>Corres Financial<br/>Information"]
+    CO31["🤝 CO31<br/>Meeting<br/>Records"]
+    CO41["💳 CO41<br/>DEPO Bank<br/>Registration"]
+    CO51["📈 CO51<br/>Transaction<br/>Performance"]
+    
+    FX["💱 Foreign Exchange<br/>Transaction System"]
+    SWIFT["📨 SWIFT Message<br/>Processing"]
+    
+    CO11 --> CO12
+    CO11 --> CO21
+    CO11 --> CO31
+    CO11 --> CO41
+    CO11 --> FX
+    CO11 --> SWIFT
+    CO41 --> CO51
+    
+    style CO11 fill:#ff6b6b,color:#fff,stroke:#333,stroke-width:3px
+    style FX fill:#4ecdc4,color:#fff
+    style SWIFT fill:#45b7d1,color:#fff
+</div><table>
+<thead>
+<tr>
+<th>Module</th>
+<th>Hubungan dengan CO11</th>
+<th>Analogi</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>CO12</strong></td>
+<td>Batch update tanggal pertukaran kunci</td>
+<td>Update massal kartu kontak</td>
+</tr>
+<tr>
+<td><strong>CO21</strong></td>
+<td>Info keuangan bank mitra</td>
+<td>Lihat laporan keuangan partner</td>
+</tr>
+<tr>
+<td><strong>CO31</strong></td>
+<td>Catatan meeting dengan bank mitra</td>
+<td>Notulensi rapat dengan partner</td>
+</tr>
+<tr>
+<td><strong>CO41</strong></td>
+<td>Daftar rekening Nostro/Vostro</td>
+<td>Daftar rekening bersama</td>
+</tr>
+<tr>
+<td><strong>CO51</strong></td>
+<td>Laporan kinerja per bank</td>
+<td>Evaluasi partner kerja</td>
+</tr>
+<tr>
+<td><strong>FX System</strong></td>
+<td>Pakai data CO11 untuk validasi transfer</td>
+<td>CO11 = basis data yang dirujuk</td>
+</tr>
+<tr>
+<td><strong>SWIFT</strong></td>
+<td>Pakai BIC dan Sending Option dari CO11</td>
+<td>Alamat pengiriman pesan</td>
+</tr>
+</tbody></table>
+<blockquote class="callout callout-warning"><p>[!WARNING]<br>Kalau data di <strong>CO11 salah</strong>, maka <strong>semua modul di atasnya ikut salah</strong>.<br>Ini seperti <strong>fondasi rumah</strong> — kalau fondasinya miring, seluruh bangunan ikut miring.</p>
+</blockquote><hr>
+<h2 id="8-audit-trail-mengapa-setiap-perubahan-dicatat">8. Audit Trail — Mengapa Setiap Perubahan Dicatat?</h2>
+<p>Setiap kali data di CO11 berubah (tambah/ubah/cancel), sistem <strong>otomatis mencatat</strong>:</p>
+<h3 id="81-sis-log-audit-jejak-transaksi">8.1 SIS Log (Audit Jejak Transaksi)</h3>
+<pre><code class="language-">Siapa yang mengubah?  → op_no (ID petugas), mng_no (ID atasan)
+Kapan diubah?         → tanggal dan jam otomatis dari server
+Dari mana?            → ajum (kode cabang)
+Jenis perubahan?      → register/modify/cancel</code></pre><h3 id="82-history-table-snapshot-harian">8.2 History Table (Snapshot Harian)</h3>
+<p>Setiap hari kerja, perubahan disimpan di tabel <code>ts_coh_base</code>:</p>
+<pre><code class="language-">┌──────────────┬─────────────┬──────────────────────┬──────────┐
+│ base_dt      │ co_bkcd     │ co_bknm1             │ cond_sts │
+├──────────────┼─────────────┼──────────────────────┼──────────┤
+│ 2026-04-01   │ CHASUS33XXX │ JPMORGAN CHASE       │ 0        │
+│ 2026-04-03   │ CHASUS33XXX │ JPMORGAN CHASE BANK  │ 1        │ ← nama diubah
+│ 2026-04-05   │ CHASUS33XXX │ JPMORGAN CHASE BANK  │ 9        │ ← dibatalkan
+└──────────────┴─────────────┴──────────────────────┴──────────┘</code></pre><p><strong>Mengapa ini penting?</strong>  </p>
+<ol>
+<li><strong>Regulasi</strong>: Bank Indonesia / OJK / FSC Korea bisa minta bukti kapan saja</li>
+<li><strong>Investigasi</strong>: Kalau ada transfer mencurigakan, bisa ditelusuri data saat itu</li>
+<li><strong>Recovery</strong>: Kalau ada kesalahan, bisa lihat data sebelum diubah</li>
+</ol>
+<hr>
+<h2 id="9-ringkasan-untuk-pengembangan-project-baru">9. Ringkasan Untuk Pengembangan Project Baru</h2>
+<h3 id="apa-yang-harus-dibangun-ulang">Apa yang Harus Dibangun Ulang?</h3>
+<table>
+<thead>
+<tr>
+<th>Komponen Lama</th>
+<th>Menjadi</th>
+<th>Prioritas</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>CO11.html (ActiveX/IE)</td>
+<td><strong>Modern Web UI</strong> (React/Vue)</td>
+<td>🔴 Tinggi</td>
+</tr>
+<tr>
+<td>coo1100.pc (Pro*C)</td>
+<td><strong>REST API</strong> (Spring Boot)</td>
+<td>🔴 Tinggi</td>
+</tr>
+<tr>
+<td>coo1800.pc (Pro*C)</td>
+<td><strong>REST API</strong> (Spring Boot)</td>
+<td>🔴 Tinggi</td>
+</tr>
+<tr>
+<td>FML Buffer</td>
+<td><strong>JSON Request/Response</strong></td>
+<td>🔴 Tinggi</td>
+</tr>
+<tr>
+<td>XML TIS Mapping</td>
+<td><strong>OpenAPI/Swagger</strong></td>
+<td>🟡 Sedang</td>
+</tr>
+<tr>
+<td>Tuxedo Middleware</td>
+<td><strong>API Gateway</strong></td>
+<td>🟡 Sedang</td>
+</tr>
+<tr>
+<td>Oracle Table</td>
+<td><strong>Tetap Oracle</strong> (atau PostgreSQL)</td>
+<td>🟢 Sudah ada</td>
+</tr>
+<tr>
+<td>Trigger <code>coh_base_trg</code></td>
+<td><strong>Application-level audit</strong> atau tetap trigger</td>
+<td>🟢 Opsional</td>
+</tr>
+</tbody></table>
+<h3 id="apa-yang-harus-dipertahankan">Apa yang Harus Dipertahankan?</h3>
+<ol>
+<li>✅ <strong>Semua 15 aturan validasi</strong> — ini aturan bisnis yang tidak berubah</li>
+<li>✅ <strong>UPSERT pattern</strong> (coba insert, kalau duplikat → update)</li>
+<li>✅ <strong>Dual control untuk Cancel</strong> (pembuat + penyetuju)</li>
+<li>✅ <strong>Audit trail lengkap</strong> (SIS log + history table)</li>
+<li>✅ <strong>Status lifecycle</strong> (0 → 1 → 9)</li>
+<li>✅ <strong>Cross-validation dengan DEPO</strong> (tabel <code>afex_rch_base</code>)</li>
+<li>✅ <strong>BIC 11-digit enforcement</strong> (8 digit + auto-append <code>XXX</code>)</li>
+</ol>
+<hr>
+<h2 id="10-glosarium">10. Glosarium</h2>
+<table>
+<thead>
+<tr>
+<th>Istilah</th>
+<th>Arti</th>
+<th>Penjelasan Mudah</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>BIC</strong></td>
+<td>Bank Identifier Code</td>
+<td>&quot;KTP&quot; bank di dunia internasional (11 digit)</td>
+</tr>
+<tr>
+<td><strong>SWIFT</strong></td>
+<td>Society for Worldwide Interbank Financial Telecommunication</td>
+<td>&quot;WhatsApp&quot;-nya bank-bank di seluruh dunia</td>
+</tr>
+<tr>
+<td><strong>Nostro</strong></td>
+<td>&quot;Our account at their bank&quot;</td>
+<td>Rekening kita di bank mereka</td>
+</tr>
+<tr>
+<td><strong>Vostro</strong></td>
+<td>&quot;Their account at our bank&quot;</td>
+<td>Rekening mereka di bank kita</td>
+</tr>
+<tr>
+<td><strong>DEPO</strong></td>
+<td>Depository</td>
+<td>Tempat menyimpan/menitipkan dana</td>
+</tr>
+<tr>
+<td><strong>ABA</strong></td>
+<td>American Bankers Association</td>
+<td>Kode routing khusus bank di Amerika</td>
+</tr>
+<tr>
+<td><strong>FML</strong></td>
+<td>Field Manipulation Language</td>
+<td>Format data lama antara frontend &amp; backend (Tuxedo)</td>
+</tr>
+<tr>
+<td><strong>Pro*C</strong></td>
+<td>Pro*C/C++ Precompiler</td>
+<td>Bahasa pemrograman C + SQL Oracle embedded</td>
+</tr>
+<tr>
+<td><strong>Tuxedo</strong></td>
+<td>Transaction Processing Monitor</td>
+<td>&quot;Pak RT&quot; yang mengatur lalu lintas data</td>
+</tr>
+<tr>
+<td><strong>SIS</strong></td>
+<td>Supervisory Information System</td>
+<td>Sistem pencatatan audit untuk regulator</td>
+</tr>
+<tr>
+<td><strong>MT103</strong></td>
+<td>SWIFT Message Type 103</td>
+<td>Format pesan standar untuk transfer dana</td>
+</tr>
+<tr>
+<td><strong>cond_sts</strong></td>
+<td>Condition Status</td>
+<td>Status data: 0=aktif, 1=diubah, 9=batal</td>
+</tr>
+<tr>
+<td><strong>cmg_base</strong></td>
+<td>Common Base Function</td>
+<td>Fungsi dasar yang dipanggil setiap transaksi</td>
+</tr>
+<tr>
+<td><strong>UPSERT</strong></td>
+<td>INSERT + UPDATE</td>
+<td>Coba tambah, kalau sudah ada → ubah</td>
+</tr>
+</tbody></table>
+</div>
+  <script>
+    mermaid.initialize({ startOnLoad: false, theme: 'neutral', securityLevel: 'loose' });
+    mermaid.run({ querySelector: '.mk-wrap .mermaid', suppressErrors: true }).catch(function(){});
+  </script>
+</body>
+</html>

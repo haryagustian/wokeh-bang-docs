@@ -1,0 +1,2770 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Markdown Export</title>
+  <style>
+    :root { color-scheme: light; }
+    body { font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; line-height: 1.65; color: #111827; margin: 0; background: #ffffff; }
+    .mk-wrap { max-width: 1080px; margin: 0 auto; padding: 32px; }
+    h1,h2,h3,h4,h5,h6 { margin: 1.1em 0 0.45em; line-height: 1.25; color: #0f172a; }
+    p, ul, ol, blockquote, pre, table { margin: 0.7em 0; }
+    ul,ol { padding-left: 1.35em; }
+    code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: #f3f4f6; padding: 0.12em 0.3em; border-radius: 4px; }
+    pre { background: #0b1020; color: #e5e7eb; border-radius: 8px; padding: 14px; overflow: auto; }
+    pre code { background: transparent; color: inherit; padding: 0; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th, td { border: 1px solid #d1d5db; padding: 8px 10px; vertical-align: top; }
+    th { background: #f9fafb; text-align: left; }
+    blockquote { margin-left: 0; padding: 10px 14px; border-left: 4px solid #9ca3af; background: #f8fafc; color: #374151; }
+    .callout-note { border-left-color: #2563eb; background: #eff6ff; }
+    .callout-important { border-left-color: #7c3aed; background: #f5f3ff; }
+    .callout-warning, .callout-caution { border-left-color: #b45309; background: #fffbeb; }
+    .callout-tip { border-left-color: #15803d; background: #f0fdf4; }
+    img { max-width: 100%; height: auto; display: block; margin: 10px auto; }
+    .mermaid { background: #ffffff; border-radius: 8px; padding: 6px; overflow: auto; }
+    .mermaid svg { max-width: 100%; height: auto; }
+    .mermaid-error { white-space: pre-wrap; background: #fff7ed; border: 1px solid #fdba74; color: #9a3412; border-radius: 8px; padding: 10px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    hr { border: 0; border-top: 1px solid #e5e7eb; margin: 1.25em 0; }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+</head>
+<body>
+  <div class="mk-wrap"><h1 id="corresponding-bank-registry-complete-business-technical-analysis">🏦 Corresponding Bank Registry — Complete Business &amp; Technical Analysis</h1>
+<h2 id="1-module-overview">1. Module Overview</h2>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Detail</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Module Code</strong></td>
+<td>CO11</td>
+</tr>
+<tr>
+<td><strong>Module Title</strong></td>
+<td>Correspondent Bank Registry (환거래은행 등록)</td>
+</tr>
+<tr>
+<td><strong>Department</strong></td>
+<td>Foreign Exchange Dept</td>
+</tr>
+<tr>
+<td><strong>Created</strong></td>
+<td>2004-05-08 by Y.H.S (COREBANK)</td>
+</tr>
+<tr>
+<td><strong>Technology Stack</strong></td>
+<td>Frontend: HTML + ActiveX (IE), Middleware: Tuxedo/FML, Backend: Pro*C (Oracle)</td>
+</tr>
+<tr>
+<td><strong>Transaction Codes</strong></td>
+<td><code>CO11</code> (Entry/Modify), <code>CO18</code> (Cancel)</td>
+</tr>
+</tbody></table>
+<blockquote class="callout callout-important"><p>[!IMPORTANT]<br>This module was built for a legacy Korean banking corebank system. It is <strong>not currently in production</strong> but needs to be re-developed for the new <strong>Foreign Exchange</strong> project.</p>
+</blockquote><hr>
+<h2 id="2-architecture-diagram">2. Architecture Diagram</h2>
+<div class="mermaid">
+sequenceDiagram
+    participant User as Branch Officer
+    participant HTML as CO11.html<br/>(ActiveX Frontend)
+    participant CN as CNService<br/>(Web-to-B Adaptor)
+    participant TUX as Tuxedo Server
+    participant SVC1 as COO1100<br/>(Entry/Modify)
+    participant SVC2 as COO1800<br/>(Cancel)
+    participant DB as Oracle DB<br/>(acom_coh_base)
+    participant TRG as Trigger<br/>(coh_base_trg)
+    participant HIST as ts_coh_base<br/>(History)
+    participant SIS as SIS Log
+
+    User->>HTML: Input bank data
+    HTML->>HTML: JavaScript validation (BIC=11chars)
+    
+    alt Entry/Modify (OPStatus=0)
+        HTML->>CN: ivkEntry.Call() → COO1100.xml
+        CN->>TUX: FML Buffer (FCOINP)
+        TUX->>SVC1: COO1100(transb)
+        SVC1->>SVC1: CO11_Clear() → CO11_Get()
+        SVC1->>SVC1: CO11_1000_Inck() [Validation]
+        SVC1->>DB: SELECT * FROM acom_coh_base
+        SVC1->>SVC1: CO11E_2000_DBck() [DB Check]
+        SVC1->>DB: INSERT/UPDATE acom_coh_base
+        DB->>TRG: AFTER INSERT/UPDATE
+        TRG->>HIST: UPSERT ts_coh_base
+        SVC1->>SIS: cmg_sis_isrt()
+        SVC1-->>HTML: TPRETURN(MSG_SUCCESS)
+    else Cancel (OPStatus=1)
+        HTML->>CN: ivkCancel.Call() → COO1800.xml
+        CN->>TUX: FML Buffer (FICO18)
+        TUX->>SVC2: COO1800(transb)
+        SVC2->>SVC2: CO18_Clear() → CO18_Get()
+        SVC2->>SVC2: CO18_1000_Inck() [Validation]
+        SVC2->>DB: SELECT * FROM acom_coh_base
+        SVC2->>SVC2: CO18_2000_DBck() + Approval Request
+        SVC2->>DB: UPDATE cond_sts = '9'
+        DB->>TRG: AFTER UPDATE
+        TRG->>HIST: UPSERT ts_coh_base
+        SVC2->>SIS: cmg_sis_isrt()
+        SVC2-->>HTML: TPRETURN(MSG_SUCCESS)
+    end
+</div><hr>
+<h2 id="3-file-inventory">3. File Inventory</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>File Path</th>
+<th>Type</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td><a href="file:///c:/Data/WOKEH-BANG/htm/co/CO11.html">CO11.html</a></td>
+<td>Frontend</td>
+<td>Main screen — data entry, query, modification, cancel</td>
+</tr>
+<tr>
+<td>2</td>
+<td><a href="file:///c:/Data/WOKEH-BANG/src/co/coo1100.pc">coo1100.pc</a></td>
+<td>Backend</td>
+<td>Tuxedo service — Entry &amp; Modify logic</td>
+</tr>
+<tr>
+<td>3</td>
+<td><a href="file:///c:/Data/WOKEH-BANG/src/co/coo1800.pc">coo1800.pc</a></td>
+<td>Backend</td>
+<td>Tuxedo service — Cancel logic</td>
+</tr>
+<tr>
+<td>4</td>
+<td><a href="file:///c:/Data/WOKEH-BANG/htm/tis/COO1100.xml">COO1100.xml</a></td>
+<td>XML Config</td>
+<td>TIS service mapping for Entry (76 FML fields)</td>
+</tr>
+<tr>
+<td>5</td>
+<td><a href="file:///c:/Data/WOKEH-BANG/htm/tis/COO1800.xml">COO1800.xml</a></td>
+<td>XML Config</td>
+<td>TIS service mapping for Cancel (1 FML field)</td>
+</tr>
+<tr>
+<td>6</td>
+<td><a href="file:///c:/Data/WOKEH-BANG/inc/fcoinp.h">fcoinp.h</a></td>
+<td>Header</td>
+<td>FML input struct definitions (FICO11_S, FICO18_S)</td>
+</tr>
+<tr>
+<td>7</td>
+<td><a href="file:///c:/Data/WOKEH-BANG/inc/coh_base.h">coh_base.h</a></td>
+<td>Header</td>
+<td>Table struct for <code>acom_coh_base</code></td>
+</tr>
+<tr>
+<td>8</td>
+<td><a href="file:///c:/Data/WOKEH-BANG/inc/rch_base.h">rch_base.h</a></td>
+<td>Header</td>
+<td>Table struct for <code>afex_rch_base</code> (Depo validation)</td>
+</tr>
+<tr>
+<td>9</td>
+<td><a href="file:///c:/Data/WOKEH-BANG/fld/FCOINP.FML">FCOINP.FML</a></td>
+<td>FML Def</td>
+<td>FML field number-to-name mapping</td>
+</tr>
+<tr>
+<td>10</td>
+<td><a href="file:///c:/Data/WOKEH-BANG/fld/FCOINP.FML.h">FCOINP.FML.h</a></td>
+<td>FML Header</td>
+<td>Auto-generated FML C header</td>
+</tr>
+<tr>
+<td>11</td>
+<td><a href="file:///c:/Data/WOKEH-BANG/src/spl/triggers/coh_base.trg">coh_base.trg</a></td>
+<td>Trigger</td>
+<td>Oracle AFTER INSERT/UPDATE → <code>ts_coh_base</code> history</td>
+</tr>
+<tr>
+<td>12</td>
+<td><a href="file:///c:/Data/WOKEH-BANG/htm/co/CO12.html">CO12.html</a></td>
+<td>Frontend</td>
+<td>Batch Exchange Registration dialog (popup from CO11)</td>
+</tr>
+<tr>
+<td>13</td>
+<td><a href="file:///c:/Data/WOKEH-BANG/src/co/coo1200.pc">coo1200.pc</a></td>
+<td>Backend</td>
+<td>Batch exchange entry service</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="4-database-tables">4. Database Tables</h2>
+<h3 id="41-primary-table-acomcohbase-correspondent-bank-master">4.1 Primary Table: <code>ACOM_COH_BASE</code> (Correspondent Bank Master)</h3>
+<blockquote><p><strong>Table Description</strong>: 환거래은행 원장 — Master ledger of all correspondent/non-correspondent banks<br><strong>Primary Key</strong>: <code>co_bkcd</code> (BIC Code, 11 characters)<br><strong>Related Trigger</strong>: <code>coh_base_trg</code> → syncs to <code>ts_coh_base</code> (history table, keyed by <code>base_dt + co_bkcd</code>)</p>
+</blockquote><table>
+<thead>
+<tr>
+<th>#</th>
+<th>Column Name</th>
+<th>Data Type</th>
+<th>Size</th>
+<th>Attribute Nm (EN)</th>
+<th>Attribute Nm (KO)</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td><code>co_bkcd</code></td>
+<td>CHAR</td>
+<td>11</td>
+<td><strong>BIC Code</strong></td>
+<td>BIC 코드</td>
+<td><strong>PRIMARY KEY</strong>. SWIFT BIC code (8+3 branch). Must be exactly 11 chars.</td>
+</tr>
+<tr>
+<td>2</td>
+<td><code>co_bknm1</code></td>
+<td>VARCHAR</td>
+<td>35</td>
+<td>Bank Name 1</td>
+<td>은행명 1</td>
+<td>Full bank name line 1 (quotation-escaped)</td>
+</tr>
+<tr>
+<td>3</td>
+<td><code>co_bknm2</code></td>
+<td>VARCHAR</td>
+<td>35</td>
+<td>Bank Name 2</td>
+<td>은행명 2</td>
+<td>Full bank name line 2</td>
+</tr>
+<tr>
+<td>4</td>
+<td><code>co_sname</code></td>
+<td>VARCHAR</td>
+<td>60</td>
+<td>Short Name</td>
+<td>약칭</td>
+<td>Short/abbreviated bank name</td>
+</tr>
+<tr>
+<td>5</td>
+<td><code>co_gb</code></td>
+<td>CHAR</td>
+<td>1</td>
+<td>Classification</td>
+<td>거래구분</td>
+<td><code>1</code>=Corres, <code>2</code>=Non-Corres, <code>3</code>=Customer</td>
+</tr>
+<tr>
+<td>6</td>
+<td><code>co_addr1</code></td>
+<td>VARCHAR</td>
+<td>70</td>
+<td>Address 1</td>
+<td>주소 1</td>
+<td>Bank address line 1 (quotation-escaped)</td>
+</tr>
+<tr>
+<td>7</td>
+<td><code>co_addr2</code></td>
+<td>VARCHAR</td>
+<td>70</td>
+<td>Address 2</td>
+<td>주소 2</td>
+<td>Bank address line 2</td>
+</tr>
+<tr>
+<td>8</td>
+<td><code>co_addr3</code></td>
+<td>VARCHAR</td>
+<td>35</td>
+<td>Address 3</td>
+<td>주소 3</td>
+<td>Bank address line 3</td>
+</tr>
+<tr>
+<td>9</td>
+<td><code>send_gb</code></td>
+<td>CHAR</td>
+<td>1</td>
+<td>Sending Option</td>
+<td>발송구분</td>
+<td><code>S</code>=SWIFT, <code>T</code>=Telex, <code>F</code>=Fax, <code>M</code>=Mail</td>
+</tr>
+<tr>
+<td>10</td>
+<td><code>aba_no</code></td>
+<td>VARCHAR</td>
+<td>9</td>
+<td>ABA Number</td>
+<td>ABA 번호</td>
+<td>For FEDLINE (numeric only)</td>
+</tr>
+<tr>
+<td>11</td>
+<td><code>co_cd</code></td>
+<td>VARCHAR</td>
+<td>8</td>
+<td>Center Corres Code</td>
+<td>본점 코레스 코드</td>
+<td>Empty on registration</td>
+</tr>
+<tr>
+<td>12</td>
+<td><code>ctry_cd</code></td>
+<td>CHAR</td>
+<td>3</td>
+<td>Country Code</td>
+<td>국가코드</td>
+<td>ISO country code (min 2 chars, mandatory)</td>
+</tr>
+<tr>
+<td>13</td>
+<td><code>ctry_nm</code></td>
+<td>VARCHAR</td>
+<td>20</td>
+<td>Country Name</td>
+<td>국가명</td>
+<td>Looked up from <code>acom_com_ctry</code></td>
+</tr>
+<tr>
+<td>14</td>
+<td><code>city_nm</code></td>
+<td>VARCHAR</td>
+<td>25</td>
+<td>City Name</td>
+<td>도시명</td>
+<td>City where bank is located</td>
+</tr>
+<tr>
+<td>15</td>
+<td><code>bctry_nm</code></td>
+<td>VARCHAR</td>
+<td>15</td>
+<td>HO Country</td>
+<td>본점 소재 국가</td>
+<td>Head Office country name</td>
+</tr>
+<tr>
+<td>16</td>
+<td><code>bcity_nm</code></td>
+<td>VARCHAR</td>
+<td>25</td>
+<td>HO City</td>
+<td>본점 소재 도시</td>
+<td>Head Office city name</td>
+</tr>
+<tr>
+<td>17</td>
+<td><code>telex_no1</code></td>
+<td>VARCHAR</td>
+<td>14</td>
+<td>Telex No 1</td>
+<td>텔렉스번호 1</td>
+<td>Primary telex number</td>
+</tr>
+<tr>
+<td>18</td>
+<td><code>telex_no2</code></td>
+<td>VARCHAR</td>
+<td>14</td>
+<td>Telex No 2</td>
+<td>텔렉스번호 2</td>
+<td>Secondary telex number</td>
+</tr>
+<tr>
+<td>19</td>
+<td><code>bex_cd</code></td>
+<td>CHAR</td>
+<td>1</td>
+<td>B-Key Exchange</td>
+<td>B-Key 교환코드</td>
+<td><code>1</code>=Exchanged, <code>0</code>=Not</td>
+</tr>
+<tr>
+<td>20</td>
+<td><code>bex_il</code></td>
+<td>VARCHAR</td>
+<td>10</td>
+<td>B-Key Exchange Date</td>
+<td>B-Key 교환일자</td>
+<td>Required if bex_cd=1 (YYYY/MM/DD)</td>
+</tr>
+<tr>
+<td>21</td>
+<td><code>bex_method</code></td>
+<td>CHAR</td>
+<td>3</td>
+<td>Exchange Method</td>
+<td>교환방법</td>
+<td>Code from <code>F337</code> code table</td>
+</tr>
+<tr>
+<td>22</td>
+<td><code>tkey_cd</code></td>
+<td>CHAR</td>
+<td>1</td>
+<td>Test-Key Exchange</td>
+<td>Test-Key 교환코드</td>
+<td><code>1</code>=Exchanged</td>
+</tr>
+<tr>
+<td>23</td>
+<td><code>tkey_il</code></td>
+<td>VARCHAR</td>
+<td>10</td>
+<td>Test-Key Date</td>
+<td>Test-Key 교환일자</td>
+<td>Required if tkey_cd=1</td>
+</tr>
+<tr>
+<td>24</td>
+<td><code>sign_cd</code></td>
+<td>CHAR</td>
+<td>1</td>
+<td>Signature Book</td>
+<td>서명감 교환여부</td>
+<td><code>1</code>=Exchanged</td>
+</tr>
+<tr>
+<td>25</td>
+<td><code>sign_il</code></td>
+<td>VARCHAR</td>
+<td>10</td>
+<td>Signature Date</td>
+<td>서명감 교환일자</td>
+<td>Required if sign_cd=1</td>
+</tr>
+<tr>
+<td>26</td>
+<td><code>tc_yn</code></td>
+<td>CHAR</td>
+<td>1</td>
+<td>T&amp;C Exchange</td>
+<td>T&amp;C 교환여부</td>
+<td>Terms &amp; Conditions <code>1</code>=Yes</td>
+</tr>
+<tr>
+<td>27</td>
+<td><code>tc_il</code></td>
+<td>VARCHAR</td>
+<td>10</td>
+<td>T&amp;C Date</td>
+<td>T&amp;C 교환일자</td>
+<td>Required if tc_yn=1</td>
+</tr>
+<tr>
+<td>28</td>
+<td><code>ar_cd</code></td>
+<td>CHAR</td>
+<td>1</td>
+<td>Annual Report</td>
+<td>Annual Report 교환여부</td>
+<td><code>1</code>=Exchanged</td>
+</tr>
+<tr>
+<td>29</td>
+<td><code>ar_il</code></td>
+<td>VARCHAR</td>
+<td>10</td>
+<td>Annual Report Date</td>
+<td>Annual Report 교환일자</td>
+<td>Required if ar_cd=1</td>
+</tr>
+<tr>
+<td>30</td>
+<td><code>ans_back</code></td>
+<td>VARCHAR</td>
+<td>16</td>
+<td>Answer Back Code</td>
+<td>Answer Back 코드</td>
+<td>Telex answer-back identifier</td>
+</tr>
+<tr>
+<td>31</td>
+<td><code>fax_no</code></td>
+<td>VARCHAR</td>
+<td>15</td>
+<td>Fax Number</td>
+<td>팩스번호</td>
+<td>Bank fax number</td>
+</tr>
+<tr>
+<td>32</td>
+<td><code>tel_no</code></td>
+<td>VARCHAR</td>
+<td>15</td>
+<td>Telephone</td>
+<td>전화번호</td>
+<td>Bank phone number</td>
+</tr>
+<tr>
+<td>33</td>
+<td><code>depo_cd</code></td>
+<td>VARCHAR</td>
+<td>4</td>
+<td>DEPO Code</td>
+<td>예치코드</td>
+<td>Depository code (mandatory if depo_chk=1)</td>
+</tr>
+<tr>
+<td>34</td>
+<td><code>meet_no</code></td>
+<td>INT</td>
+<td>—</td>
+<td>Meeting Count</td>
+<td>면담번호</td>
+<td>Default 0 on registration</td>
+</tr>
+<tr>
+<td>35</td>
+<td><code>make_il</code></td>
+<td>VARCHAR</td>
+<td>10</td>
+<td>Registration Date</td>
+<td>등록일자</td>
+<td>Date of initial registration</td>
+</tr>
+<tr>
+<td>36</td>
+<td><code>chng_il</code></td>
+<td>VARCHAR</td>
+<td>10</td>
+<td>Alteration Date</td>
+<td>수정일자</td>
+<td>Date of last modification</td>
+</tr>
+<tr>
+<td>37</td>
+<td><code>ct_il</code></td>
+<td>VARCHAR</td>
+<td>10</td>
+<td>Corres Established Date</td>
+<td>코레스 체결일자</td>
+<td>Date correspondence was established</td>
+</tr>
+<tr>
+<td>38</td>
+<td><code>ct_gb</code></td>
+<td>CHAR</td>
+<td>1</td>
+<td>Corres Established By</td>
+<td>코레스 체결구분</td>
+<td><code>1</code>=Our Request, <code>2</code>=Their Request</td>
+</tr>
+<tr>
+<td>39</td>
+<td><code>op_no</code></td>
+<td>VARCHAR</td>
+<td>7</td>
+<td>Operator ID</td>
+<td>작성자 ID</td>
+<td>From G_FXFIG.opno</td>
+</tr>
+<tr>
+<td>40</td>
+<td><code>mng_no</code></td>
+<td>VARCHAR</td>
+<td>7</td>
+<td>Manager ID</td>
+<td>책임자 ID</td>
+<td>From G_FXFIG.mnno</td>
+</tr>
+<tr>
+<td>41</td>
+<td><code>depo_chk</code></td>
+<td>CHAR</td>
+<td>1</td>
+<td>DEPO Y/N</td>
+<td>DEPO 여부</td>
+<td><code>1</code>=Depo, <code>2</code>=Non-Depo</td>
+</tr>
+<tr>
+<td>42</td>
+<td><code>bnjm_gb</code></td>
+<td>CHAR</td>
+<td>1</td>
+<td>H.O. Y/N</td>
+<td>본점구분</td>
+<td><code>1</code>=Yes (Head Office), <code>2</code>=No</td>
+</tr>
+<tr>
+<td>43</td>
+<td><code>cond_sts</code></td>
+<td>CHAR</td>
+<td>1</td>
+<td><strong>Status Code</strong></td>
+<td>상태코드</td>
+<td><code>0</code>=New, <code>1</code>=Modified, <code>9</code>=Cancelled</td>
+</tr>
+<tr>
+<td>44</td>
+<td><code>acct_no</code></td>
+<td>VARCHAR</td>
+<td>20</td>
+<td>Account Number</td>
+<td>계좌번호</td>
+<td>Nostro/Vostro account number</td>
+</tr>
+<tr>
+<td>45</td>
+<td><code>cont_prsn1</code></td>
+<td>VARCHAR</td>
+<td>60</td>
+<td>Contact Person 1</td>
+<td>연락담당자 1</td>
+<td>Primary contact person name</td>
+</tr>
+<tr>
+<td>46</td>
+<td><code>cont_prsn2</code></td>
+<td>VARCHAR</td>
+<td>30</td>
+<td>Contact Person 2</td>
+<td>연락담당자 2</td>
+<td></td>
+</tr>
+<tr>
+<td>47</td>
+<td><code>cont_prsn3</code></td>
+<td>VARCHAR</td>
+<td>30</td>
+<td>Contact Person 3</td>
+<td>연락담당자 3</td>
+<td></td>
+</tr>
+<tr>
+<td>48</td>
+<td><code>cont_prsn4</code></td>
+<td>VARCHAR</td>
+<td>30</td>
+<td>Contact Person 4</td>
+<td>연락담당자 4</td>
+<td></td>
+</tr>
+<tr>
+<td>49</td>
+<td><code>cont_prsn5</code></td>
+<td>VARCHAR</td>
+<td>30</td>
+<td>Contact Person 5</td>
+<td>연락담당자 5</td>
+<td></td>
+</tr>
+<tr>
+<td>50</td>
+<td><code>email_addr1</code></td>
+<td>VARCHAR</td>
+<td>30</td>
+<td>Email 1</td>
+<td>이메일 1</td>
+<td>Contact 1 email</td>
+</tr>
+<tr>
+<td>51</td>
+<td><code>email_addr2</code></td>
+<td>VARCHAR</td>
+<td>30</td>
+<td>Email 2</td>
+<td>이메일 2</td>
+<td></td>
+</tr>
+<tr>
+<td>52</td>
+<td><code>email_addr3</code></td>
+<td>VARCHAR</td>
+<td>30</td>
+<td>Email 3</td>
+<td>이메일 3</td>
+<td></td>
+</tr>
+<tr>
+<td>53</td>
+<td><code>email_addr4</code></td>
+<td>VARCHAR</td>
+<td>30</td>
+<td>Email 4</td>
+<td>이메일 4</td>
+<td></td>
+</tr>
+<tr>
+<td>54</td>
+<td><code>email_addr5</code></td>
+<td>VARCHAR</td>
+<td>30</td>
+<td>Email 5</td>
+<td>이메일 5</td>
+<td></td>
+</tr>
+<tr>
+<td>55</td>
+<td><code>tel_no1</code></td>
+<td>VARCHAR</td>
+<td>20</td>
+<td>Contact Tel 1</td>
+<td>담당 전화 1</td>
+<td>Contact 1 phone</td>
+</tr>
+<tr>
+<td>56</td>
+<td><code>tel_no2</code></td>
+<td>VARCHAR</td>
+<td>20</td>
+<td>Contact Tel 2</td>
+<td>담당 전화 2</td>
+<td></td>
+</tr>
+<tr>
+<td>57</td>
+<td><code>tel_no3</code></td>
+<td>VARCHAR</td>
+<td>20</td>
+<td>Contact Tel 3</td>
+<td>담당 전화 3</td>
+<td></td>
+</tr>
+<tr>
+<td>58</td>
+<td><code>tel_no4</code></td>
+<td>VARCHAR</td>
+<td>20</td>
+<td>Contact Tel 4</td>
+<td>담당 전화 4</td>
+<td></td>
+</tr>
+<tr>
+<td>59</td>
+<td><code>tel_no5</code></td>
+<td>VARCHAR</td>
+<td>20</td>
+<td>Contact Tel 5</td>
+<td>담당 전화 5</td>
+<td></td>
+</tr>
+<tr>
+<td>60</td>
+<td><code>head_depart1</code></td>
+<td>VARCHAR</td>
+<td>20</td>
+<td>Managing Dept 1</td>
+<td>소속부서 1</td>
+<td>Contact 1 head department</td>
+</tr>
+<tr>
+<td>61</td>
+<td><code>head_depart2</code></td>
+<td>VARCHAR</td>
+<td>20</td>
+<td>Managing Dept 2</td>
+<td>소속부서 2</td>
+<td></td>
+</tr>
+<tr>
+<td>62</td>
+<td><code>head_depart3</code></td>
+<td>VARCHAR</td>
+<td>20</td>
+<td>Managing Dept 3</td>
+<td>소속부서 3</td>
+<td></td>
+</tr>
+<tr>
+<td>63</td>
+<td><code>head_depart4</code></td>
+<td>VARCHAR</td>
+<td>20</td>
+<td>Managing Dept 4</td>
+<td>소속부서 4</td>
+<td></td>
+</tr>
+<tr>
+<td>64</td>
+<td><code>head_depart5</code></td>
+<td>VARCHAR</td>
+<td>20</td>
+<td>Managing Dept 5</td>
+<td>소속부서 5</td>
+<td></td>
+</tr>
+<tr>
+<td>65</td>
+<td><code>depart1</code></td>
+<td>VARCHAR</td>
+<td>20</td>
+<td>Department 1</td>
+<td>부서 1</td>
+<td>Contact 1 department</td>
+</tr>
+<tr>
+<td>66</td>
+<td><code>depart2</code></td>
+<td>VARCHAR</td>
+<td>20</td>
+<td>Department 2</td>
+<td>부서 2</td>
+<td></td>
+</tr>
+<tr>
+<td>67</td>
+<td><code>depart3</code></td>
+<td>VARCHAR</td>
+<td>20</td>
+<td>Department 3</td>
+<td>부서 3</td>
+<td></td>
+</tr>
+<tr>
+<td>68</td>
+<td><code>depart4</code></td>
+<td>VARCHAR</td>
+<td>20</td>
+<td>Department 4</td>
+<td>부서 4</td>
+<td></td>
+</tr>
+<tr>
+<td>69</td>
+<td><code>depart5</code></td>
+<td>VARCHAR</td>
+<td>20</td>
+<td>Department 5</td>
+<td>부서 5</td>
+<td></td>
+</tr>
+<tr>
+<td>70</td>
+<td><code>bran_nm1</code></td>
+<td>VARCHAR</td>
+<td>20</td>
+<td>Branch Name 1</td>
+<td>지점명 1</td>
+<td>Contact 1 branch</td>
+</tr>
+<tr>
+<td>71</td>
+<td><code>bran_nm2</code></td>
+<td>VARCHAR</td>
+<td>20</td>
+<td>Branch Name 2</td>
+<td>지점명 2</td>
+<td></td>
+</tr>
+<tr>
+<td>72</td>
+<td><code>bran_nm3</code></td>
+<td>VARCHAR</td>
+<td>20</td>
+<td>Branch Name 3</td>
+<td>지점명 3</td>
+<td></td>
+</tr>
+<tr>
+<td>73</td>
+<td><code>bran_nm4</code></td>
+<td>VARCHAR</td>
+<td>20</td>
+<td>Branch Name 4</td>
+<td>지점명 4</td>
+<td></td>
+</tr>
+<tr>
+<td>74</td>
+<td><code>bran_nm5</code></td>
+<td>VARCHAR</td>
+<td>20</td>
+<td>Branch Name 5</td>
+<td>지점명 5</td>
+<td></td>
+</tr>
+<tr>
+<td>75</td>
+<td><code>job_nm1</code></td>
+<td>VARCHAR</td>
+<td>20</td>
+<td>Duty 1</td>
+<td>담당업무 1</td>
+<td>Contact 1 job/duty</td>
+</tr>
+<tr>
+<td>76</td>
+<td><code>job_nm2</code></td>
+<td>VARCHAR</td>
+<td>20</td>
+<td>Duty 2</td>
+<td>담당업무 2</td>
+<td></td>
+</tr>
+<tr>
+<td>77</td>
+<td><code>job_nm3</code></td>
+<td>VARCHAR</td>
+<td>20</td>
+<td>Duty 3</td>
+<td>담당업무 3</td>
+<td></td>
+</tr>
+<tr>
+<td>78</td>
+<td><code>job_nm4</code></td>
+<td>VARCHAR</td>
+<td>20</td>
+<td>Duty 4</td>
+<td>담당업무 4</td>
+<td></td>
+</tr>
+<tr>
+<td>79</td>
+<td><code>job_nm5</code></td>
+<td>VARCHAR</td>
+<td>20</td>
+<td>Duty 5</td>
+<td>담당업무 5</td>
+<td></td>
+</tr>
+<tr>
+<td>80</td>
+<td><code>telex_no3</code></td>
+<td>VARCHAR</td>
+<td>14</td>
+<td>Telex No 3</td>
+<td>텔렉스번호 3</td>
+<td></td>
+</tr>
+<tr>
+<td>81</td>
+<td><code>telex_no4</code></td>
+<td>VARCHAR</td>
+<td>14</td>
+<td>Telex No 4</td>
+<td>텔렉스번호 4</td>
+<td></td>
+</tr>
+<tr>
+<td>82</td>
+<td><code>telex_no5</code></td>
+<td>VARCHAR</td>
+<td>14</td>
+<td>Telex No 5</td>
+<td>텔렉스번호 5</td>
+<td></td>
+</tr>
+</tbody></table>
+<hr>
+<h3 id="42-related-table-afexrchbase-settlementdepo-account-master">4.2 Related Table: <code>AFEX_RCH_BASE</code> (Settlement/Depo Account Master)</h3>
+<blockquote><p><strong>Table Description</strong>: 결제계좌(DEPO) 원장 — Depository account master for settlement<br><strong>Primary Key</strong>: <code>cd</code> + <code>bkcd</code> + <code>ccy</code> (composite)</p>
+</blockquote><table>
+<thead>
+<tr>
+<th>#</th>
+<th>Column Name</th>
+<th>Data Type</th>
+<th>Size</th>
+<th>Attribute Nm (EN)</th>
+<th>Attribute Nm (KO)</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td><code>cd</code></td>
+<td>CHAR</td>
+<td>4</td>
+<td>DEPO Code</td>
+<td>DEPO 코드</td>
+<td>Depository code</td>
+</tr>
+<tr>
+<td>2</td>
+<td><code>bkcd</code></td>
+<td>CHAR</td>
+<td>11</td>
+<td>DEPO Bank Code</td>
+<td>DEPO 은행코드</td>
+<td>BIC of the depository bank</td>
+</tr>
+<tr>
+<td>3</td>
+<td><code>ccy</code></td>
+<td>CHAR</td>
+<td>3</td>
+<td>Currency</td>
+<td>통화 코드 (F2)</td>
+<td>ISO currency code</td>
+</tr>
+<tr>
+<td>4</td>
+<td><code>atten_no</code></td>
+<td>VARCHAR</td>
+<td>35</td>
+<td>Account Number</td>
+<td>계좌번호</td>
+<td>Account at depository bank</td>
+</tr>
+<tr>
+<td>5</td>
+<td><code>bknm</code></td>
+<td>VARCHAR</td>
+<td>35</td>
+<td>Bank Name</td>
+<td>DEPO 은행명</td>
+<td></td>
+</tr>
+<tr>
+<td>6</td>
+<td><code>depo_type</code></td>
+<td>CHAR</td>
+<td>1</td>
+<td>DEPO Type</td>
+<td>DEPO 구분</td>
+<td><code>1</code>=Vostro, <code>2</code>=Domestic Nostro, <code>3</code>=Overseas Nostro</td>
+</tr>
+<tr>
+<td>7</td>
+<td><code>depo_il</code></td>
+<td>VARCHAR</td>
+<td>10</td>
+<td>Establishment Date</td>
+<td>체결일</td>
+<td></td>
+</tr>
+<tr>
+<td>8</td>
+<td><code>depo_56a</code></td>
+<td>CHAR</td>
+<td>11</td>
+<td>Intermediary</td>
+<td>중개은행</td>
+<td>Field56a BIC</td>
+</tr>
+<tr>
+<td>9</td>
+<td><code>depo_57a</code></td>
+<td>CHAR</td>
+<td>11</td>
+<td>Account With</td>
+<td>계좌관리은행</td>
+<td>Field57a BIC</td>
+</tr>
+<tr>
+<td>10</td>
+<td><code>ctry_cd</code></td>
+<td>CHAR</td>
+<td>3</td>
+<td>Country Code</td>
+<td>국가코드</td>
+<td></td>
+</tr>
+<tr>
+<td>11</td>
+<td><code>depo_etc1</code></td>
+<td>VARCHAR</td>
+<td>60</td>
+<td>Remark 1</td>
+<td>비고1</td>
+<td></td>
+</tr>
+<tr>
+<td>12</td>
+<td><code>depo_etc2</code></td>
+<td>VARCHAR</td>
+<td>60</td>
+<td>CIF No</td>
+<td>CIF 번호</td>
+<td></td>
+</tr>
+<tr>
+<td>13</td>
+<td><code>depo_etc3</code></td>
+<td>VARCHAR</td>
+<td>60</td>
+<td>Bank A/C No</td>
+<td>은행계좌번호</td>
+<td></td>
+</tr>
+<tr>
+<td>14</td>
+<td><code>recon_yn</code></td>
+<td>CHAR</td>
+<td>1</td>
+<td>Reconciliation Y/N</td>
+<td>대사여부</td>
+<td><code>Y</code>/<code>N</code></td>
+</tr>
+<tr>
+<td>15</td>
+<td><code>sts</code></td>
+<td>CHAR</td>
+<td>1</td>
+<td>Status</td>
+<td>상태</td>
+<td><code>0</code>=Active</td>
+</tr>
+<tr>
+<td>16</td>
+<td><code>af_cd</code></td>
+<td>VARCHAR</td>
+<td>4</td>
+<td>After DEPO Code</td>
+<td>변경후 DEPO코드</td>
+<td></td>
+</tr>
+<tr>
+<td>17</td>
+<td><code>mng_br</code></td>
+<td>VARCHAR</td>
+<td>4</td>
+<td>Managing Branch</td>
+<td>관리점</td>
+<td></td>
+</tr>
+<tr>
+<td>18</td>
+<td><code>cbs_cd</code></td>
+<td>VARCHAR</td>
+<td>8</td>
+<td>Debit GL Code</td>
+<td>차변계정과목코드</td>
+<td></td>
+</tr>
+<tr>
+<td>19</td>
+<td><code>dbs_cd</code></td>
+<td>VARCHAR</td>
+<td>8</td>
+<td>Credit GL Code</td>
+<td>대변계정과목코드</td>
+<td></td>
+</tr>
+<tr>
+<td>20</td>
+<td><code>vostro_yn</code></td>
+<td>CHAR</td>
+<td>1</td>
+<td>Vostro Y/N</td>
+<td>VOSTRO 여부</td>
+<td><code>Y</code>/<code>N</code></td>
+</tr>
+</tbody></table>
+<hr>
+<h3 id="43-history-table-tscohbase">4.3 History Table: <code>TS_COH_BASE</code></h3>
+<blockquote><p>Automatically maintained by Oracle trigger <code>coh_base_trg</code>.<br>Same structure as <code>acom_coh_base</code> <strong>plus</strong> a leading <code>base_dt DATE</code> column.<br>Composite key: <code>base_dt + co_bkcd</code>.</p>
+</blockquote><hr>
+<h3 id="44-lookup-table-acomcomctry-country-master">4.4 Lookup Table: <code>ACOM_COM_CTRY</code> (Country Master)</h3>
+<p>Used for country code → country name resolution on the frontend:</p>
+<pre><code class="language-sql">SELECT nm FROM acom_com_ctry WHERE cd = :ctry_cd</code></pre><hr>
+<h2 id="5-frontend-analysis-co11html">5. Frontend Analysis (CO11.html)</h2>
+<h3 id="51-page-configuration">5.1 Page Configuration</h3>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Title</strong></td>
+<td>Correspondent Bank registry</td>
+</tr>
+<tr>
+<td><strong>CSS</strong></td>
+<td><code>/css/Base.css</code></td>
+</tr>
+<tr>
+<td><strong>JavaScript</strong></td>
+<td><code>/script/common.js</code> (external) + inline <code>&lt;SCRIPT&gt;</code></td>
+</tr>
+<tr>
+<td><strong>Data Source (SQL)</strong></td>
+<td><code>wasSQLDSO</code> ActiveX object → direct SQL against DB</td>
+</tr>
+<tr>
+<td><strong>Service Broker</strong></td>
+<td><code>/svct/CNService</code></td>
+</tr>
+<tr>
+<td><strong>Entry Service</strong></td>
+<td><code>COO1100</code> via <code>ivkEntry</code> INVOKESERVICE</td>
+</tr>
+<tr>
+<td><strong>Cancel Service</strong></td>
+<td><code>COO1800</code> via <code>ivkCancel</code> INVOKESERVICE</td>
+</tr>
+</tbody></table>
+<h3 id="52-invokeservice-definitions">5.2 INVOKESERVICE Definitions</h3>
+<pre><code class="language-xml">&lt;!-- Entry/Modify --&gt;
+&lt;CORE:INVOKESERVICE id=&quot;ivkEntry&quot; 
+    InputParams=&quot;prmIn&quot; 
+    MapLocation=&quot;/tis/COO1100.xml&quot; 
+    RequestBroker=&quot;/svct/CNService&quot; 
+    ServiceName=&quot;COO1100&quot;/&gt;
+&lt;CORE:PARAMS id=&quot;prmIn&quot; 
+    SectionName=&quot;SCR_INPUT&quot; 
+    DSONames=&quot;paramDSOEntry=SCR_INPUT&quot;/&gt;
+
+&lt;!-- Cancel --&gt;
+&lt;CORE:INVOKESERVICE id=&quot;ivkCancel&quot; 
+    InputParams=&quot;prmIn2&quot; 
+    MapLocation=&quot;/tis/COO1800.xml&quot; 
+    RequestBroker=&quot;/svct/CNService&quot; 
+    ServiceName=&quot;COO1800&quot;/&gt;
+&lt;CORE:PARAMS id=&quot;prmIn2&quot; 
+    SectionName=&quot;SCR_INPUT&quot; 
+    DSONames=&quot;paramDSOCancel=SCR_INPUT&quot;/&gt;</code></pre><h3 id="53-javascript-functions">5.3 JavaScript Functions</h3>
+<table>
+<thead>
+<tr>
+<th>Function</th>
+<th>Trigger</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>fInitProc()</code></td>
+<td>Page load</td>
+<td>Initialize DSO recordsets, init combo, call <code>fActCancelJob()</code>, set default date, focus BIC</td>
+</tr>
+<tr>
+<td><code>f_onClick()</code></td>
+<td>Button clicks</td>
+<td>Routes to popup dialogs or copy logic based on <code>event.srcElement</code></td>
+</tr>
+<tr>
+<td><code>f_onblur()</code></td>
+<td>Field blur</td>
+<td>When BIC code loses focus: validate → fetch from DB. When country code loses focus: fetch country name</td>
+</tr>
+<tr>
+<td><code>f_ValidateExec()</code></td>
+<td>BIC field blur</td>
+<td>Validates BIC length (8→append XXX, 11→SELECT cond_sts). Returns boolean</td>
+</tr>
+<tr>
+<td><code>f_getDataFromDB()</code></td>
+<td>After BIC validation</td>
+<td>Queries <code>acom_coh_base</code> for all columns and calls <code>f_DataFrom()</code></td>
+</tr>
+<tr>
+<td><code>f_DataFrom()</code></td>
+<td>After data fetch</td>
+<td>Populates all 80+ form fields from recordset</td>
+</tr>
+<tr>
+<td><code>f_getCtryNmFromDB()</code></td>
+<td>Country code blur</td>
+<td>Queries <code>acom_com_ctry</code> for country name</td>
+</tr>
+<tr>
+<td><code>checkedRadio(obj)</code></td>
+<td>Utility</td>
+<td>Returns the checked radio button from a group</td>
+</tr>
+<tr>
+<td><code>upperCase()</code></td>
+<td>Key press</td>
+<td>Forces uppercase input on text fields</td>
+</tr>
+<tr>
+<td><code>f_chkOnClick(oElement)</code></td>
+<td>Checkbox click</td>
+<td>Auto-fills date picker with business date when checkbox is checked</td>
+</tr>
+<tr>
+<td><code>fActEntry()</code></td>
+<td>Execute (OPStatus=0)</td>
+<td>Maps all form values → <code>paramDSOEntry</code> recordset fields → <code>ivkEntry.Call()</code></td>
+</tr>
+<tr>
+<td><code>fActCancel()</code></td>
+<td>Cancel (OPStatus=1)</td>
+<td>Maps BIC code → <code>paramDSOCancel</code> → <code>ivkCancel.Call()</code></td>
+</tr>
+<tr>
+<td><code>fActCancelJob()</code></td>
+<td>New/Reset (OPStatus=6)</td>
+<td>Clears all form fields to defaults</td>
+</tr>
+<tr>
+<td><code>fActExecute()</code></td>
+<td>Toolbar button</td>
+<td>Dispatcher: routes to Entry, Cancel, or Reset based on <code>parent.OPStatus</code></td>
+</tr>
+</tbody></table>
+<h3 id="54-popup-dialogs-modal-windows">5.4 Popup Dialogs (Modal Windows)</h3>
+<table>
+<thead>
+<tr>
+<th>Button ID</th>
+<th>Popup URL</th>
+<th>Purpose</th>
+<th>Return Parameters</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>imgCoBkcdBtn</code></td>
+<td><code>/iq/IQ61.html</code></td>
+<td>BIC Code Inquiry</td>
+<td><code>param[0]</code> = BIC Code</td>
+</tr>
+<tr>
+<td><code>imgCtryCodeBtn</code></td>
+<td><code>/iq/IQ64.html</code></td>
+<td>Country Code Inquiry</td>
+<td><code>param[0]</code> = Country Code, <code>param[1]</code> = Country Name</td>
+</tr>
+<tr>
+<td><code>imgDepoCdBtn</code></td>
+<td><code>/iq/IQ63.html</code></td>
+<td>DEPO Code Inquiry</td>
+<td><code>param[0]</code> = DEPO Code</td>
+</tr>
+<tr>
+<td><code>imgCopyBtn</code></td>
+<td><code>/iq/IQ61.html</code></td>
+<td>Copy from existing bank</td>
+<td><code>param[0]</code> = BIC Code</td>
+</tr>
+<tr>
+<td><code>imgBatchExeBtn</code></td>
+<td><code>CO12.html</code></td>
+<td>Batch Exchange Registration</td>
+<td><code>param[0]</code> = BIC, <code>param[1]</code> = buffer, <code>param[2]</code> = date</td>
+</tr>
+</tbody></table>
+<h3 id="55-dropdown-combo-box">5.5 Dropdown (Combo Box)</h3>
+<table>
+<thead>
+<tr>
+<th>Element ID</th>
+<th>Data Source</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>cbbBex_Method</code></td>
+<td>Code Table <code>F337</code></td>
+<td>B-Key Exchange Method. Initialized via <code>LIB().InitCB()</code></td>
+</tr>
+</tbody></table>
+<h3 id="56-radio-button-groups">5.6 Radio Button Groups</h3>
+<table>
+<thead>
+<tr>
+<th>Group Name</th>
+<th>Options</th>
+<th>Default</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>Co_Gb</code> (Classification)</td>
+<td><code>1</code>=Corres, <code>2</code>=Non-Corres, <code>3</code>=Cust</td>
+<td><code>1</code></td>
+</tr>
+<tr>
+<td><code>Send_Gb</code> (Sending Option)</td>
+<td><code>S</code>=Swift, <code>T</code>=Telex, <code>F</code>=Fax, <code>M</code>=Mail</td>
+<td><code>S</code></td>
+</tr>
+<tr>
+<td><code>Depo_Chk</code> (Depo Y/N)</td>
+<td><code>1</code>=Yes, <code>2</code>=No</td>
+<td><code>1</code></td>
+</tr>
+<tr>
+<td><code>Bnjm_Gb</code> (H.O. Y/N)</td>
+<td><code>1</code>=Yes, <code>2</code>=No</td>
+<td><code>1</code></td>
+</tr>
+<tr>
+<td><code>Ct_Gb</code> (Corres Est. By)</td>
+<td><code>1</code>=Our Request, <code>2</code>=Their Request</td>
+<td><code>1</code></td>
+</tr>
+</tbody></table>
+<h3 id="57-operation-modes-parentopstatus">5.7 Operation Modes (<code>parent.OPStatus</code>)</h3>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Mode</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>0</code></td>
+<td>Entry/Modify</td>
+<td>Calls <code>fActEntry()</code> → service COO1100</td>
+</tr>
+<tr>
+<td><code>1</code></td>
+<td>Cancel</td>
+<td>Calls <code>fActCancel()</code> → service COO1800</td>
+</tr>
+<tr>
+<td><code>6</code></td>
+<td>New/Reset</td>
+<td>Calls <code>fActCancelJob()</code> → clears all fields</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="6-xml-service-definitions-tis-mapping">6. XML Service Definitions (TIS Mapping)</h2>
+<h3 id="61-coo1100xml-entrymodify">6.1 COO1100.xml (Entry/Modify)</h3>
+<pre><code class="language-">Platform:     IBM_GATEWAY
+BusinessLayer: hostlang=&quot;C&quot;
+Implementation: CoreBankBP / TCPIP-SOCKET (127.0.0.1:2000)
+InOut:        Request_Reply
+
+InputData count=&quot;76&quot; (SCR_INPUT)
+  - All 76 FICO11_* fields mapped as String type
+
+OutputData:
+  - ServiceName, MethodName(HostAdaptor), Kind(WebtoBAdaptor), Desp</code></pre><h3 id="62-coo1800xml-cancel">6.2 COO1800.xml (Cancel)</h3>
+<pre><code class="language-">InputData count=&quot;1&quot; (SCR_INPUT)
+  - FICO18_CO_BKCD only (String type)
+
+OutputData: same structure as COO1100</code></pre><hr>
+<h2 id="7-fml-field-mapping">7. FML Field Mapping</h2>
+<h3 id="71-entry-fml-buffer-base-7100000-82-fields">7.1 Entry FML Buffer (Base 7100000) — 82 fields</h3>
+<table>
+<thead>
+<tr>
+<th>FML #</th>
+<th>FML Field Name</th>
+<th>Type</th>
+<th>Maps To</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td>FICO11_CO_BKCD</td>
+<td>string</td>
+<td>co_bkcd</td>
+<td>BIC Code</td>
+</tr>
+<tr>
+<td>2</td>
+<td>FICO11_CO_BKNM1</td>
+<td>string</td>
+<td>co_bknm1</td>
+<td>Bank Name 1</td>
+</tr>
+<tr>
+<td>3</td>
+<td>FICO11_CO_BKNM2</td>
+<td>string</td>
+<td>co_bknm2</td>
+<td>Bank Name 2</td>
+</tr>
+<tr>
+<td>4</td>
+<td>FICO11_CO_SNAME</td>
+<td>string</td>
+<td>co_sname</td>
+<td>Short Name</td>
+</tr>
+<tr>
+<td>5</td>
+<td>FICO11_CO_GB</td>
+<td>string</td>
+<td>co_gb</td>
+<td>Classification</td>
+</tr>
+<tr>
+<td>6–8</td>
+<td>FICO11_CO_ADDR1~3</td>
+<td>string</td>
+<td>co_addr1~3</td>
+<td>Address 1-3</td>
+</tr>
+<tr>
+<td>9</td>
+<td>FICO11_SEND_GB</td>
+<td>string</td>
+<td>send_gb</td>
+<td>Sending Option</td>
+</tr>
+<tr>
+<td>10</td>
+<td>FICO11_ABA_NO</td>
+<td>string</td>
+<td>aba_no</td>
+<td>ABA Number</td>
+</tr>
+<tr>
+<td>11</td>
+<td>FICO11_CO_CD</td>
+<td>string</td>
+<td>co_cd</td>
+<td>Center Code (unused)</td>
+</tr>
+<tr>
+<td>12</td>
+<td>FICO11_CTRY_CD</td>
+<td>string</td>
+<td>ctry_cd</td>
+<td>Country Code</td>
+</tr>
+<tr>
+<td>13</td>
+<td>FICO11_CTRY_NM</td>
+<td>string</td>
+<td>ctry_nm</td>
+<td>Country Name</td>
+</tr>
+<tr>
+<td>14</td>
+<td>FICO11_CITY_NM</td>
+<td>string</td>
+<td>city_nm</td>
+<td>City Name</td>
+</tr>
+<tr>
+<td>15</td>
+<td>FICO11_BCTRY_NM</td>
+<td>string</td>
+<td>bctry_nm</td>
+<td>HO Country</td>
+</tr>
+<tr>
+<td>16</td>
+<td>FICO11_BCITY_NM</td>
+<td>string</td>
+<td>bcity_nm</td>
+<td>HO City</td>
+</tr>
+<tr>
+<td>17–21</td>
+<td>FICO11_TELEX_NO1~5</td>
+<td>string</td>
+<td>telex_no1~5</td>
+<td>Telex Numbers</td>
+</tr>
+<tr>
+<td>22</td>
+<td>FICO11_BEX_CD</td>
+<td>string</td>
+<td>bex_cd</td>
+<td>B-Key Code</td>
+</tr>
+<tr>
+<td>23</td>
+<td>FICO11_BEX_IL</td>
+<td>string</td>
+<td>bex_il</td>
+<td>B-Key Date</td>
+</tr>
+<tr>
+<td>24</td>
+<td>FICO11_BEX_METHOD</td>
+<td>string</td>
+<td>bex_method</td>
+<td>Exchange Method</td>
+</tr>
+<tr>
+<td>25</td>
+<td>FICO11_TKEY_CD</td>
+<td>string</td>
+<td>tkey_cd</td>
+<td>Test-Key Code</td>
+</tr>
+<tr>
+<td>26</td>
+<td>FICO11_TKEY_IL</td>
+<td>string</td>
+<td>tkey_il</td>
+<td>Test-Key Date</td>
+</tr>
+<tr>
+<td>27</td>
+<td>FICO11_SIGN_CD</td>
+<td>string</td>
+<td>sign_cd</td>
+<td>Signature Book</td>
+</tr>
+<tr>
+<td>28</td>
+<td>FICO11_SIGN_IL</td>
+<td>string</td>
+<td>sign_il</td>
+<td>Signature Date</td>
+</tr>
+<tr>
+<td>29</td>
+<td>FICO11_TC_YN</td>
+<td>string</td>
+<td>tc_yn</td>
+<td>T&amp;C Y/N</td>
+</tr>
+<tr>
+<td>30</td>
+<td>FICO11_TC_IL</td>
+<td>string</td>
+<td>tc_il</td>
+<td>T&amp;C Date</td>
+</tr>
+<tr>
+<td>31</td>
+<td>FICO11_AR_CD</td>
+<td>string</td>
+<td>ar_cd</td>
+<td>Annual Report</td>
+</tr>
+<tr>
+<td>32</td>
+<td>FICO11_AR_IL</td>
+<td>string</td>
+<td>ar_il</td>
+<td>AR Date</td>
+</tr>
+<tr>
+<td>33</td>
+<td>FICO11_ANS_BACK</td>
+<td>string</td>
+<td>ans_back</td>
+<td>Answer Back</td>
+</tr>
+<tr>
+<td>34</td>
+<td>FICO11_FAX_NO</td>
+<td>string</td>
+<td>fax_no</td>
+<td>Fax Number</td>
+</tr>
+<tr>
+<td>35</td>
+<td>FICO11_TEL_NO</td>
+<td>string</td>
+<td>tel_no</td>
+<td>Tel Number</td>
+</tr>
+<tr>
+<td>36</td>
+<td>FICO11_DEPO_CD</td>
+<td>string</td>
+<td>depo_cd</td>
+<td>DEPO Code</td>
+</tr>
+<tr>
+<td>37</td>
+<td>FICO11_MEET_NO</td>
+<td>int</td>
+<td>meet_no</td>
+<td>Meeting Count</td>
+</tr>
+<tr>
+<td>38</td>
+<td>FICO11_MAKE_IL</td>
+<td>string</td>
+<td>make_il</td>
+<td>Registration Date</td>
+</tr>
+<tr>
+<td>39</td>
+<td>FICO11_CHNG_IL</td>
+<td>string</td>
+<td>chng_il</td>
+<td>Alteration Date</td>
+</tr>
+<tr>
+<td>40</td>
+<td>FICO11_CT_IL</td>
+<td>string</td>
+<td>ct_il</td>
+<td>Corres Est. Date</td>
+</tr>
+<tr>
+<td>41</td>
+<td>FICO11_CT_GB</td>
+<td>string</td>
+<td>ct_gb</td>
+<td>Corres Est. By</td>
+</tr>
+<tr>
+<td>42</td>
+<td>FICO11_OP_NO</td>
+<td>string</td>
+<td>op_no</td>
+<td>Operator ID</td>
+</tr>
+<tr>
+<td>43</td>
+<td>FICO11_MNG_NO</td>
+<td>string</td>
+<td>mng_no</td>
+<td>Manager ID</td>
+</tr>
+<tr>
+<td>44</td>
+<td>FICO11_DEPO_CHK</td>
+<td>string</td>
+<td>depo_chk</td>
+<td>DEPO Y/N</td>
+</tr>
+<tr>
+<td>45</td>
+<td>FICO11_BNJM_GB</td>
+<td>string</td>
+<td>bnjm_gb</td>
+<td>H.O. Y/N</td>
+</tr>
+<tr>
+<td>46</td>
+<td>FICO11_COND_STS</td>
+<td>string</td>
+<td>cond_sts</td>
+<td>Status Code</td>
+</tr>
+<tr>
+<td>47</td>
+<td>FICO11_ACCT_NO</td>
+<td>string</td>
+<td>acct_no</td>
+<td>Account Number</td>
+</tr>
+<tr>
+<td>48–52</td>
+<td>FICO11_CONT_PRSN1~5</td>
+<td>string</td>
+<td>cont_prsn1~5</td>
+<td>Contact Persons</td>
+</tr>
+<tr>
+<td>53–57</td>
+<td>FICO11_EMAIL_ADDR1~5</td>
+<td>string</td>
+<td>email_addr1~5</td>
+<td>Emails</td>
+</tr>
+<tr>
+<td>58–62</td>
+<td>FICO11_TEL_NO1~5</td>
+<td>string</td>
+<td>tel_no1~5</td>
+<td>Contact Phones</td>
+</tr>
+<tr>
+<td>63–67</td>
+<td>FICO11_HEAD_DEPART1~5</td>
+<td>string</td>
+<td>head_depart1~5</td>
+<td>Managing Depts</td>
+</tr>
+<tr>
+<td>68–72</td>
+<td>FICO11_DEPART1~5</td>
+<td>string</td>
+<td>depart1~5</td>
+<td>Departments</td>
+</tr>
+<tr>
+<td>73–77</td>
+<td>FICO11_BRAN_NM1~5</td>
+<td>string</td>
+<td>bran_nm1~5</td>
+<td>Branch Names</td>
+</tr>
+<tr>
+<td>78–82</td>
+<td>FICO11_JOB_NM1~5</td>
+<td>string</td>
+<td>job_nm1~5</td>
+<td>Duties</td>
+</tr>
+</tbody></table>
+<h3 id="72-cancel-fml-buffer-base-7100400-1-field">7.2 Cancel FML Buffer (Base 7100400) — 1 field</h3>
+<table>
+<thead>
+<tr>
+<th>FML #</th>
+<th>FML Field Name</th>
+<th>Type</th>
+<th>Maps To</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td>FICO18_CO_BKCD</td>
+<td>string</td>
+<td>co_bkcd</td>
+<td>BIC Code to cancel</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="8-backend-business-logic">8. Backend Business Logic</h2>
+<h3 id="81-coo1100-entrymodify-service-flow">8.1 COO1100 — Entry/Modify Service Flow</h3>
+<div class="mermaid">
+flowchart TD
+    A[COO1100 START] --> B[CO11_Clear<br/>Initialize all buffers]
+    B --> C[CO11_Get<br/>Extract FML fields to FICO11 struct]
+    C --> D[CO11_1000_Inck<br/>Input Validation]
+    D --> E[CO11E_2000_DBck<br/>Database Validation]
+    E --> F[CO11E_3000_Set<br/>INSERT or UPDATE]
+    F --> G[CO11_4000_SIS<br/>Write SIS audit log]
+    G --> H[CO11E_Put<br/>Return result to client]
+    H --> I[TPRETURN MSG_SUCCESS]
+
+    D -->|Fail| X[CO11_tprt_err<br/>TPRETURN_ERROR]
+    E -->|Fail| X
+    F -->|Fail| X
+</div><h4 id="step-1-co11clear-buffer-initialization">Step 1: <code>CO11_Clear()</code> — Buffer Initialization</h4>
+<ul>
+<li>Zeroes out <code>FICO11</code>, <code>COH_BASE</code>, <code>RCH_BASE</code> structs</li>
+<li>Resets SIS log variables</li>
+</ul>
+<h4 id="step-2-co11get-fml-struct-extraction">Step 2: <code>CO11_Get()</code> — FML → Struct Extraction</h4>
+<ul>
+<li>Calls <code>cmg_base(&#39;O&#39;,&#39;N&#39;)</code> for common initialization (&#39;O&#39;=online, &#39;N&#39;=no daily batch)</li>
+<li>Uses <code>GET()</code> macro to extract all 76+ FML fields into the <code>FICO11</code> struct</li>
+</ul>
+<h4 id="step-3-co111000inck-input-validation-rules">Step 3: <code>CO11_1000_Inck()</code> — Input Validation Rules</h4>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Error Code</th>
+<th>Rule</th>
+<th>Error Message / Key</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td>1002</td>
+<td><code>co_bkcd</code> must be exactly 11 characters</td>
+<td>AERR60056</td>
+</tr>
+<tr>
+<td>2</td>
+<td>1003</td>
+<td><code>co_gb</code> must be &#39;1&#39;, &#39;2&#39;, or &#39;3&#39;</td>
+<td>AERR70005</td>
+</tr>
+<tr>
+<td>3</td>
+<td>1004</td>
+<td><code>send_gb</code> must be &#39;S&#39;, &#39;T&#39;, &#39;F&#39;, or &#39;M&#39;</td>
+<td>AERR70074</td>
+</tr>
+<tr>
+<td>4</td>
+<td>1005</td>
+<td><code>ctry_cd</code> must be at least 2 characters</td>
+<td>AERR10242</td>
+</tr>
+<tr>
+<td>5</td>
+<td>1006</td>
+<td><code>co_bknm1</code> is mandatory (min 1 char)</td>
+<td>AERR60090</td>
+</tr>
+<tr>
+<td>6</td>
+<td>1007</td>
+<td><code>aba_no</code> must be numeric (if provided)</td>
+<td>AERR91408</td>
+</tr>
+<tr>
+<td>7</td>
+<td>1008</td>
+<td>If <code>send_gb</code>=&#39;T&#39;, <code>telex_no1</code> is mandatory</td>
+<td>(inline message)</td>
+</tr>
+<tr>
+<td>8</td>
+<td>1009</td>
+<td><code>bex_method</code> must be valid code from F337</td>
+<td>AERR70075</td>
+</tr>
+<tr>
+<td>9</td>
+<td>1010</td>
+<td><code>bex_cd</code>=1 requires <code>bex_il</code> ≥ 10 chars; otherwise <code>bex_il</code> must be empty</td>
+<td>AERR70076</td>
+</tr>
+<tr>
+<td>10</td>
+<td>1011</td>
+<td><code>tkey_cd</code>/<code>tkey_il</code> mismatch check</td>
+<td>AERR70077</td>
+</tr>
+<tr>
+<td>11</td>
+<td>1012</td>
+<td><code>sign_cd</code>/<code>sign_il</code> mismatch check</td>
+<td>AERR70078</td>
+</tr>
+<tr>
+<td>12</td>
+<td>1013</td>
+<td><code>tc_yn</code>/<code>tc_il</code> mismatch check</td>
+<td>AERR70079</td>
+</tr>
+<tr>
+<td>13</td>
+<td>1014</td>
+<td><code>ar_cd</code>/<code>ar_il</code> mismatch check</td>
+<td>AERR70080</td>
+</tr>
+<tr>
+<td>14</td>
+<td>1015</td>
+<td>If <code>depo_chk</code>=&#39;1&#39;, <code>depo_cd</code> is mandatory</td>
+<td>AERR70081</td>
+</tr>
+</tbody></table>
+<h4 id="step-4-co11e2000dbck-database-validation">Step 4: <code>CO11E_2000_DBck()</code> — Database Validation</h4>
+<pre><code class="language-sql">-- Check if BIC already exists
+SELECT * INTO :COH_BASE FROM acom_coh_base WHERE co_bkcd = :co_bkcd;
+
+-- If found and cond_sts = '9' → Error &quot;Already canceled BIC Code&quot;
+-- If Depo=No and depo_cd is not empty:
+SELECT COUNT(*) FROM afex_rch_base WHERE cd = :depo_cd AND sts = 0;
+-- If count &gt; 0 → Error &quot;CO41 settlement offset needed first&quot;
+
+-- If Depo=Yes and depo_cd is not empty:
+SELECT COUNT(*) FROM afex_rch_base WHERE cd = :depo_cd AND bkcd = :co_bkcd AND sts = 0;
+-- If count = 0 → Error &quot;Depo Code Not Found&quot;</code></pre><h4 id="step-5-co11e3000set-insertupdate-logic">Step 5: <code>CO11E_3000_Set()</code> — INSERT/UPDATE Logic</h4>
+<ol>
+<li>Copy all FICO11 fields → COH_BASE struct (with <code>cmg_qstr()</code> quotation escape for names/addresses)</li>
+<li>Set defaults: <code>cond_sts = &quot;0&quot;</code> (new), <code>meet_no = 0</code>, <code>co_cd = &quot;&quot;</code></li>
+<li>Set operator/manager from global: <code>op_no = G_FXFIG.opno</code>, <code>mng_no = G_FXFIG.mnno</code></li>
+<li>Attempt <code>INSERT INTO acom_coh_base VALUES(:COH_BASE)</code></li>
+<li>If <strong>DUP</strong> (duplicate key):<ul>
+<li>Change <code>cond_sts = &quot;1&quot;</code> (modified)</li>
+<li>Execute <code>UPDATE acom_coh_base SET ... WHERE co_bkcd = :co_bkcd</code></li>
+</ul>
+</li>
+</ol>
+<blockquote class="callout callout-note"><p>[!NOTE]<br>This implements an UPSERT pattern: INSERT first, and if the PK already exists (DUP), fall back to UPDATE.</p>
+</blockquote><h4 id="step-6-co114000sis-sis-audit-log">Step 6: <code>CO11_4000_SIS()</code> — SIS Audit Log</h4>
+<p>Sets SIS_TRAN structure with:</p>
+<ul>
+<li><code>ysloggb = &quot;1&quot;</code> (normal log)</li>
+<li><code>yscnlgb = &quot;&quot;</code> (not cancel)</li>
+<li><code>ysinpgb = &quot;5&quot;</code> (transaction type)</li>
+<li><code>yscntgb = &quot;1&quot;</code> (workload target)</li>
+<li><code>ysbrno = G_FXFIG.ajum</code> (branch number)</li>
+<li>Calls <code>cmg_sis_isrt()</code> to write audit trail</li>
+</ul>
+<hr>
+<h3 id="82-coo1800-cancel-service-flow">8.2 COO1800 — Cancel Service Flow</h3>
+<div class="mermaid">
+flowchart TD
+    A[COO1800 START] --> B[CO18_Clear<br/>Initialize buffers + PCMOVRD]
+    B --> C[CO18_Get<br/>Extract BIC code only]
+    C --> D[CO18_1000_Inck<br/>BIC = 11 chars]
+    D --> E[CO18_2000_DBck<br/>Check existence + approval request]
+    E --> F{Approval<br/>Required?}
+    F -->|Yes| G[TPRETURN_ERROR<br/>'Approval Requesting']
+    F -->|No| H[CO18_3000_Set<br/>UPDATE cond_sts='9']
+    H --> I[CO18_4000_SIS<br/>Write cancel SIS log]
+    I --> J[CO18_Put<br/>Return result]
+    J --> K[TPRETURN MSG_SUCCESS]
+</div><h4 id="key-differences-from-coo1100">Key Differences from COO1100:</h4>
+<table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th>COO1100 (Entry)</th>
+<th>COO1800 (Cancel)</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Input parameters</td>
+<td>76 FML fields</td>
+<td>1 field (co_bkcd only)</td>
+</tr>
+<tr>
+<td>DB operation</td>
+<td>INSERT / UPDATE</td>
+<td>UPDATE cond_sts = &#39;9&#39;</td>
+</tr>
+<tr>
+<td>Approval</td>
+<td>Not required</td>
+<td><strong>Required</strong> (책임자승인 via <code>cmg_ovrditemadd</code>)</td>
+</tr>
+<tr>
+<td>SIS cancel flag</td>
+<td><code>yscnlgb = &quot;&quot;</code></td>
+<td><code>yscnlgb = &quot;1&quot;</code></td>
+</tr>
+<tr>
+<td>Status output</td>
+<td><code>cond_sts = &quot;0&quot;</code> or <code>&quot;1&quot;</code></td>
+<td><code>cond_sts = &quot;9&quot;</code></td>
+</tr>
+<tr>
+<td>Input struct</td>
+<td>FICO11_S (93 fields)</td>
+<td>FICO18_S (1 field: co_bkcd)</td>
+</tr>
+</tbody></table>
+<h4 id="approval-logic">Approval Logic (책임자승인):</h4>
+<pre><code class="language-c">// CO18_2000_DBck() → requests supervisor approval
+cmg_ovrditemadd(&amp;PCMOVRD, &quot;11&quot;, &quot;Corres Bank Cancel...&quot;, &quot;&quot;);
+
+// Main flow checks approval status
+if (PCMOVRD.ovrd_gb[0] == NULL &amp;&amp; PCMOVRD.ovrd_cc &gt; 0 &amp;&amp; G_FGINP.tr_gb[0] != '1') {
+    PCMOVRD.ovrd_gb[0] = '1';
+    cmg_putovrd(&amp;PCMOVRD);
+    TPRETURN_ERROR(&quot;Approval Requesting&quot;, 0);  // Suspend until approved
+}</code></pre><hr>
+<h2 id="9-database-trigger-cohbasetrg">9. Database Trigger (coh_base_trg)</h2>
+<pre><code class="language-sql">CREATE OR REPLACE TRIGGER coh_base_trg
+    AFTER INSERT OR UPDATE ON coh_base FOR EACH ROW
+DECLARE
+    x_base_dt DATE;
+BEGIN
+    SELECT today INTO x_base_dt FROM com_dayinf;
+    
+    -- Try UPDATE ts_coh_base first
+    UPDATE ts_coh_base SET ... WHERE base_dt = x_base_dt AND co_bkcd = :old.co_bkcd;
+    
+    -- If no row updated → INSERT
+    IF SQL%ROWCOUNT = 0 THEN
+        INSERT INTO ts_coh_base VALUES (x_base_dt, :new.co_bkcd, ...);
+    END IF;
+END;</code></pre><blockquote class="callout callout-tip"><p>[!TIP]<br>The trigger implements <strong>daily snapshots</strong>. Each business day (<code>com_dayinf.today</code>) gets at most one history row per BIC code in <code>ts_coh_base</code>.</p>
+</blockquote><hr>
+<h2 id="10-complete-parameter-list-service-interface">10. Complete Parameter List (Service Interface)</h2>
+<h3 id="101-coo1100-input-parameters-76-fields-for-entrymodify">10.1 COO1100 Input Parameters (76 fields for Entry/Modify)</h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Parameter Name</th>
+<th>Type</th>
+<th>Size</th>
+<th>Required</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td>FICO11_CO_BKCD</td>
+<td>String</td>
+<td>11</td>
+<td><strong>YES</strong></td>
+<td>BIC Code (Primary Key)</td>
+</tr>
+<tr>
+<td>2</td>
+<td>FICO11_CO_BKNM1</td>
+<td>String</td>
+<td>35</td>
+<td><strong>YES</strong></td>
+<td>Bank Name Line 1</td>
+</tr>
+<tr>
+<td>3</td>
+<td>FICO11_CO_BKNM2</td>
+<td>String</td>
+<td>35</td>
+<td>No</td>
+<td>Bank Name Line 2</td>
+</tr>
+<tr>
+<td>4</td>
+<td>FICO11_CO_SNAME</td>
+<td>String</td>
+<td>30</td>
+<td>No</td>
+<td>Short Name</td>
+</tr>
+<tr>
+<td>5</td>
+<td>FICO11_CO_GB</td>
+<td>String</td>
+<td>1</td>
+<td><strong>YES</strong></td>
+<td>Classification (1/2/3)</td>
+</tr>
+<tr>
+<td>6</td>
+<td>FICO11_CO_ADDR1</td>
+<td>String</td>
+<td>35</td>
+<td>No</td>
+<td>Address 1</td>
+</tr>
+<tr>
+<td>7</td>
+<td>FICO11_CO_ADDR2</td>
+<td>String</td>
+<td>35</td>
+<td>No</td>
+<td>Address 2</td>
+</tr>
+<tr>
+<td>8</td>
+<td>FICO11_CO_ADDR3</td>
+<td>String</td>
+<td>35</td>
+<td>No</td>
+<td>Address 3</td>
+</tr>
+<tr>
+<td>9</td>
+<td>FICO11_SEND_GB</td>
+<td>String</td>
+<td>1</td>
+<td><strong>YES</strong></td>
+<td>Sending Option (S/T/F/M)</td>
+</tr>
+<tr>
+<td>10</td>
+<td>FICO11_ABA_NO</td>
+<td>String</td>
+<td>9</td>
+<td>Conditional</td>
+<td>ABA Number (numeric)</td>
+</tr>
+<tr>
+<td>11</td>
+<td>FICO11_CTRY_CD</td>
+<td>String</td>
+<td>3</td>
+<td><strong>YES</strong></td>
+<td>Country Code (min 2)</td>
+</tr>
+<tr>
+<td>12</td>
+<td>FICO11_CTRY_NM</td>
+<td>String</td>
+<td>20</td>
+<td>No</td>
+<td>Country Name</td>
+</tr>
+<tr>
+<td>13</td>
+<td>FICO11_CITY_NM</td>
+<td>String</td>
+<td>25</td>
+<td>No</td>
+<td>City Name</td>
+</tr>
+<tr>
+<td>14</td>
+<td>FICO11_BCTRY_NM</td>
+<td>String</td>
+<td>15</td>
+<td>No</td>
+<td>HO Country</td>
+</tr>
+<tr>
+<td>15</td>
+<td>FICO11_BCITY_NM</td>
+<td>String</td>
+<td>25</td>
+<td>No</td>
+<td>HO City</td>
+</tr>
+<tr>
+<td>16–20</td>
+<td>FICO11_TELEX_NO1~5</td>
+<td>String</td>
+<td>14</td>
+<td>Conditional</td>
+<td>Telex Numbers (No1 mandatory if send_gb=T)</td>
+</tr>
+<tr>
+<td>21</td>
+<td>FICO11_BEX_CD</td>
+<td>String</td>
+<td>1</td>
+<td>No</td>
+<td>B-Key Y/N</td>
+</tr>
+<tr>
+<td>22</td>
+<td>FICO11_BEX_IL</td>
+<td>String</td>
+<td>10</td>
+<td>Conditional</td>
+<td>B-Key Date (if bex_cd=1)</td>
+</tr>
+<tr>
+<td>23</td>
+<td>FICO11_BEX_METHOD</td>
+<td>String</td>
+<td>3</td>
+<td>No</td>
+<td>Exchange Method (F337)</td>
+</tr>
+<tr>
+<td>24</td>
+<td>FICO11_TKEY_CD</td>
+<td>String</td>
+<td>1</td>
+<td>No</td>
+<td>Test-Key Y/N</td>
+</tr>
+<tr>
+<td>25</td>
+<td>FICO11_TKEY_IL</td>
+<td>String</td>
+<td>10</td>
+<td>Conditional</td>
+<td>Test-Key Date</td>
+</tr>
+<tr>
+<td>26</td>
+<td>FICO11_SIGN_CD</td>
+<td>String</td>
+<td>1</td>
+<td>No</td>
+<td>Signature Book Y/N</td>
+</tr>
+<tr>
+<td>27</td>
+<td>FICO11_SIGN_IL</td>
+<td>String</td>
+<td>10</td>
+<td>Conditional</td>
+<td>Signature Date</td>
+</tr>
+<tr>
+<td>28</td>
+<td>FICO11_TC_YN</td>
+<td>String</td>
+<td>1</td>
+<td>No</td>
+<td>T&amp;C Y/N</td>
+</tr>
+<tr>
+<td>29</td>
+<td>FICO11_TC_IL</td>
+<td>String</td>
+<td>10</td>
+<td>Conditional</td>
+<td>T&amp;C Date</td>
+</tr>
+<tr>
+<td>30</td>
+<td>FICO11_AR_CD</td>
+<td>String</td>
+<td>1</td>
+<td>No</td>
+<td>Annual Report Y/N</td>
+</tr>
+<tr>
+<td>31</td>
+<td>FICO11_AR_IL</td>
+<td>String</td>
+<td>10</td>
+<td>Conditional</td>
+<td>AR Date</td>
+</tr>
+<tr>
+<td>32</td>
+<td>FICO11_ANS_BACK</td>
+<td>String</td>
+<td>16</td>
+<td>No</td>
+<td>Answer Back Code</td>
+</tr>
+<tr>
+<td>33</td>
+<td>FICO11_FAX_NO</td>
+<td>String</td>
+<td>15</td>
+<td>No</td>
+<td>Fax Number</td>
+</tr>
+<tr>
+<td>34</td>
+<td>FICO11_TEL_NO</td>
+<td>String</td>
+<td>15</td>
+<td>No</td>
+<td>Phone Number</td>
+</tr>
+<tr>
+<td>35</td>
+<td>FICO11_DEPO_CD</td>
+<td>String</td>
+<td>4</td>
+<td>Conditional</td>
+<td>DEPO Code (if depo_chk=1)</td>
+</tr>
+<tr>
+<td>36</td>
+<td>FICO11_MAKE_IL</td>
+<td>String</td>
+<td>10</td>
+<td>No</td>
+<td>Registration Date</td>
+</tr>
+<tr>
+<td>37</td>
+<td>FICO11_CHNG_IL</td>
+<td>String</td>
+<td>10</td>
+<td>No</td>
+<td>Alteration Date</td>
+</tr>
+<tr>
+<td>38</td>
+<td>FICO11_CT_IL</td>
+<td>String</td>
+<td>10</td>
+<td>No</td>
+<td>Corres Established Date</td>
+</tr>
+<tr>
+<td>39</td>
+<td>FICO11_CT_GB</td>
+<td>String</td>
+<td>1</td>
+<td>No</td>
+<td>Corres Established By</td>
+</tr>
+<tr>
+<td>40</td>
+<td>FICO11_DEPO_CHK</td>
+<td>String</td>
+<td>1</td>
+<td><strong>YES</strong></td>
+<td>DEPO Y/N (1/2)</td>
+</tr>
+<tr>
+<td>41</td>
+<td>FICO11_BNJM_GB</td>
+<td>String</td>
+<td>1</td>
+<td><strong>YES</strong></td>
+<td>H.O. Y/N (1/2)</td>
+</tr>
+<tr>
+<td>42</td>
+<td>FICO11_ACCT_NO</td>
+<td>String</td>
+<td>20</td>
+<td>No</td>
+<td>Account Number</td>
+</tr>
+<tr>
+<td>43–47</td>
+<td>FICO11_CONT_PRSN1~5</td>
+<td>String</td>
+<td>30</td>
+<td>No</td>
+<td>Contact Persons</td>
+</tr>
+<tr>
+<td>48–52</td>
+<td>FICO11_EMAIL_ADDR1~5</td>
+<td>String</td>
+<td>30</td>
+<td>No</td>
+<td>Emails</td>
+</tr>
+<tr>
+<td>53–57</td>
+<td>FICO11_TEL_NO1~5</td>
+<td>String</td>
+<td>20</td>
+<td>No</td>
+<td>Contact Phones</td>
+</tr>
+<tr>
+<td>58–62</td>
+<td>FICO11_HEAD_DEPART1~5</td>
+<td>String</td>
+<td>20</td>
+<td>No</td>
+<td>Managing Departments</td>
+</tr>
+<tr>
+<td>63–67</td>
+<td>FICO11_DEPART1~5</td>
+<td>String</td>
+<td>20</td>
+<td>No</td>
+<td>Departments</td>
+</tr>
+<tr>
+<td>68–72</td>
+<td>FICO11_BRAN_NM1~5</td>
+<td>String</td>
+<td>20</td>
+<td>No</td>
+<td>Branch Names</td>
+</tr>
+<tr>
+<td>73–77</td>
+<td>FICO11_JOB_NM1~5</td>
+<td>String</td>
+<td>20</td>
+<td>No</td>
+<td>Duties</td>
+</tr>
+</tbody></table>
+<h3 id="102-coo1800-input-parameters-1-field-for-cancel">10.2 COO1800 Input Parameters (1 field for Cancel)</h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Parameter Name</th>
+<th>Type</th>
+<th>Size</th>
+<th>Required</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td>FICO18_CO_BKCD</td>
+<td>String</td>
+<td>11</td>
+<td><strong>YES</strong></td>
+<td>BIC Code to cancel</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="11-batch-processing-co12">11. Batch Processing (CO12)</h2>
+<p>The CO11 screen includes a <strong>&quot;Batch Entry&quot;</strong> button (<code>imgBatchExeBtn</code>) which opens <code>CO12.html</code> as a modal dialog:</p>
+<pre><code class="language-javascript">gMainDialog = window.showModalDialog(&quot;CO12.html&quot;, DArg,
+    &quot;status=no;resizable=no;scroll=yes;center=yes;dialogHeight=490px;dialogWidth=690px&quot;);</code></pre><ul>
+<li><strong>Purpose</strong>: Batch-register exchange details (B-Key, Test-Key, Signature, T&amp;C, Annual Report dates) for multiple banks at once</li>
+<li><strong>Related services</strong>: <code>coo1200.pc</code> (batch entry), <code>coo1201.pc</code> (batch execution)</li>
+<li><strong>FML structs</strong>: <code>FICO12_S</code> (sep_id, co_bkcd, exch_il) and <code>FICO1201_S</code> (co_bkcd, chng_il, send_gb)</li>
+</ul>
+<hr>
+<h2 id="12-error-code-reference">12. Error Code Reference</h2>
+<table>
+<thead>
+<tr>
+<th>Error Code</th>
+<th>Error Key</th>
+<th>Error Count</th>
+<th>Context</th>
+<th>Message (EN)</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1001</td>
+<td>—</td>
+<td>—</td>
+<td>cmg_base fail</td>
+<td>Common base initialization error</td>
+</tr>
+<tr>
+<td>1002</td>
+<td>AERR60056</td>
+<td>Entry</td>
+<td>Input check</td>
+<td>BIC Code must be 11 characters</td>
+</tr>
+<tr>
+<td>1003</td>
+<td>AERR70005</td>
+<td>Entry</td>
+<td>Input check</td>
+<td>Classification error</td>
+</tr>
+<tr>
+<td>1004</td>
+<td>AERR70074</td>
+<td>Entry</td>
+<td>Input check</td>
+<td>Sending Option error</td>
+</tr>
+<tr>
+<td>1005</td>
+<td>AERR10242</td>
+<td>Entry</td>
+<td>Input check</td>
+<td>Country Code is Mandatory</td>
+</tr>
+<tr>
+<td>1006</td>
+<td>AERR60090</td>
+<td>Entry</td>
+<td>Input check</td>
+<td>Bank Name is Mandatory</td>
+</tr>
+<tr>
+<td>1007</td>
+<td>AERR91408</td>
+<td>Entry</td>
+<td>Input check</td>
+<td>ABA Number must be numeric</td>
+</tr>
+<tr>
+<td>1008</td>
+<td>—</td>
+<td>Entry</td>
+<td>Input check</td>
+<td>Telex No1 mandatory for Telex</td>
+</tr>
+<tr>
+<td>1009</td>
+<td>AERR70075</td>
+<td>Entry</td>
+<td>Input check</td>
+<td>Exchange Method invalid (F337)</td>
+</tr>
+<tr>
+<td>1010</td>
+<td>AERR70076</td>
+<td>Entry</td>
+<td>Input check</td>
+<td>B-Key/date mismatch</td>
+</tr>
+<tr>
+<td>1011</td>
+<td>AERR70077</td>
+<td>Entry</td>
+<td>Input check</td>
+<td>Test-Key/date mismatch</td>
+</tr>
+<tr>
+<td>1012</td>
+<td>AERR70078</td>
+<td>Entry</td>
+<td>Input check</td>
+<td>Signature/date mismatch</td>
+</tr>
+<tr>
+<td>1013</td>
+<td>AERR70079</td>
+<td>Entry</td>
+<td>Input check</td>
+<td>Terms&amp;Condition/date mismatch</td>
+</tr>
+<tr>
+<td>1014</td>
+<td>AERR70080</td>
+<td>Entry</td>
+<td>Input check</td>
+<td>Annual Report/date mismatch</td>
+</tr>
+<tr>
+<td>1015</td>
+<td>AERR70081</td>
+<td>Entry</td>
+<td>Input check</td>
+<td>DEPO Code mandatory when Depo=Yes</td>
+</tr>
+<tr>
+<td>1016</td>
+<td>AERR70082</td>
+<td>Entry</td>
+<td>DB check</td>
+<td>Already canceled BIC Code</td>
+</tr>
+<tr>
+<td>1017</td>
+<td>—</td>
+<td>Entry</td>
+<td>DB check</td>
+<td>AFEX_RCH_BASE SELECT FAIL</td>
+</tr>
+<tr>
+<td>1018</td>
+<td>—</td>
+<td>Entry</td>
+<td>DB check</td>
+<td>CO41 settlement offset needed</td>
+</tr>
+<tr>
+<td>1019</td>
+<td>—</td>
+<td>Entry</td>
+<td>DB check</td>
+<td>AFEX_RCH_BASE SELECT FAIL</td>
+</tr>
+<tr>
+<td>1020</td>
+<td>—</td>
+<td>Entry</td>
+<td>DB check</td>
+<td>DEPO Code not found</td>
+</tr>
+<tr>
+<td>1021</td>
+<td>—</td>
+<td>Entry</td>
+<td>DB update</td>
+<td>UPDATE FAIL</td>
+</tr>
+<tr>
+<td>1022</td>
+<td>—</td>
+<td>Entry</td>
+<td>DB insert</td>
+<td>INSERT FAIL</td>
+</tr>
+<tr>
+<td>1023</td>
+<td>—</td>
+<td>Entry</td>
+<td>SIS log</td>
+<td>SIS Log write fail</td>
+</tr>
+<tr>
+<td>1002</td>
+<td>—</td>
+<td>Cancel</td>
+<td>Input check</td>
+<td>Bank code must be 11 chars</td>
+</tr>
+<tr>
+<td>1003–1004</td>
+<td>—</td>
+<td>Cancel</td>
+<td>DB check</td>
+<td>ACOM_COH_BASE NOT FOUND / SELECT FAIL</td>
+</tr>
+<tr>
+<td>1005</td>
+<td>—</td>
+<td>Cancel</td>
+<td>DB check</td>
+<td>No registered bank code</td>
+</tr>
+<tr>
+<td>1006</td>
+<td>—</td>
+<td>Cancel</td>
+<td>DB check</td>
+<td>Already canceled Corres Code</td>
+</tr>
+<tr>
+<td>1007</td>
+<td>—</td>
+<td>Cancel</td>
+<td>Approval</td>
+<td>Approval item add fail</td>
+</tr>
+<tr>
+<td>1008–1009</td>
+<td>—</td>
+<td>Cancel</td>
+<td>Set</td>
+<td>ACOM_COH_BASE NOT FOUND / SELECT FAIL</td>
+</tr>
+<tr>
+<td>1010</td>
+<td>—</td>
+<td>Cancel</td>
+<td>Set</td>
+<td>ACOM_COH_BASE UPDATE FAIL</td>
+</tr>
+<tr>
+<td>1011</td>
+<td>—</td>
+<td>Cancel</td>
+<td>SIS log</td>
+<td>SIS Log write fail</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="13-complete-co-module-family">13. Complete CO Module Family</h2>
+<table>
+<thead>
+<tr>
+<th>Screen</th>
+<th>Service Entry</th>
+<th>Service Cancel</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>CO11</strong></td>
+<td>coo1100.pc</td>
+<td>coo1800.pc</td>
+<td><strong>Correspondent Bank Registry</strong> (this document)</td>
+</tr>
+<tr>
+<td>CO12</td>
+<td>coo1200.pc / coo1201.pc</td>
+<td>—</td>
+<td>Batch Exchange Registration</td>
+</tr>
+<tr>
+<td>CO21</td>
+<td>coo2100.pc / coo2101.pc</td>
+<td>coo2800.pc</td>
+<td>Corres Information Management</td>
+</tr>
+<tr>
+<td>CO31</td>
+<td>coo3100.pc</td>
+<td>coo3800.pc</td>
+<td>Corres Meeting Records</td>
+</tr>
+<tr>
+<td>CO41</td>
+<td>coo4100.pc</td>
+<td>coo4800.pc</td>
+<td>DEPO Bank Registration</td>
+</tr>
+<tr>
+<td>CO51</td>
+<td>coo5100.pc</td>
+<td>—</td>
+<td>Bank Transaction Performance</td>
+</tr>
+<tr>
+<td>CO61</td>
+<td>coo6100.pc</td>
+<td>coo6800.pc</td>
+<td>BIC Directory Management</td>
+</tr>
+<tr>
+<td>CO71</td>
+<td>coo7100.pc</td>
+<td>coo7800.pc</td>
+<td>ABA Registration</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="14-key-observations-for-new-fx-project-development">14. Key Observations for New FX Project Development</h2>
+<blockquote class="callout callout-warning"><p>[!WARNING]<br>The following points are critical considerations when re-developing this module for the new Foreign Exchange project.</p>
+</blockquote><h3 id="141-technology-migration">14.1 Technology Migration</h3>
+<ul>
+<li><strong>Frontend</strong>: Migrate from ActiveX/IE to modern web framework (React/Vue/Angular)</li>
+<li><strong>Middleware</strong>: Replace Tuxedo/FML with REST API or gRPC</li>
+<li><strong>Backend</strong>: Replace Pro*C with Java Spring Boot (JPA/MyBatis)</li>
+<li><strong>Database</strong>: Oracle tables remain but need DDL scripts for <code>acom_coh_base</code>, <code>ts_coh_base</code>, <code>afex_rch_base</code></li>
+</ul>
+<h3 id="142-business-logic-to-preserve">14.2 Business Logic to Preserve</h3>
+<ol>
+<li><strong>UPSERT pattern</strong>: INSERT first → UPDATE on DUP</li>
+<li><strong>BIC validation</strong>: Exactly 11 characters, auto-append &#39;XXX&#39; for 8-char input</li>
+<li><strong>Cross-field validation</strong>: All 5 exchange checkbox/date pairs</li>
+<li><strong>DEPO cross-validation</strong> against <code>afex_rch_base</code></li>
+<li><strong>Supervisor approval</strong> for cancel operations</li>
+<li><strong>SIS audit log</strong> for all transactions</li>
+<li><strong>Trigger-based history</strong> (daily snapshot to <code>ts_coh_base</code>)</li>
+</ol>
+<h3 id="143-code-table-dependencies">14.3 Code Table Dependencies</h3>
+<ul>
+<li><strong>F337</strong>: Exchange Method values (loaded via <code>cmg_codeck</code>)</li>
+<li><strong>acom_com_ctry</strong>: Country code/name lookup</li>
+<li><strong>com_dayinf</strong>: Current business date</li>
+</ul>
+<h3 id="144-missingunused-features">14.4 Missing/Unused Features</h3>
+<ul>
+<li><code>co_cd</code> (Center Corres Code) is always set to <code>&quot;&quot;</code> on registration</li>
+<li><code>FICO11_MEET_NO</code> is not sent from frontend (set to 0 server-side)</li>
+<li>SIS data copy to <code>G_sisbuf</code> is disabled (<code>#if 0</code>)</li>
+<li><code>telex_no5</code> exists in FML but not explicitly in UPDATE columns (only in INSERT via struct)</li>
+</ul>
+</div>
+  <script>
+    mermaid.initialize({ startOnLoad: false, theme: 'neutral', securityLevel: 'loose' });
+    mermaid.run({ querySelector: '.mk-wrap .mermaid', suppressErrors: true }).catch(function(){});
+  </script>
+</body>
+</html>

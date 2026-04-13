@@ -1,0 +1,1425 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Markdown Export</title>
+  <style>
+    :root { color-scheme: light; }
+    body { font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; line-height: 1.65; color: #111827; margin: 0; background: #ffffff; }
+    .mk-wrap { max-width: 1080px; margin: 0 auto; padding: 32px; }
+    h1,h2,h3,h4,h5,h6 { margin: 1.1em 0 0.45em; line-height: 1.25; color: #0f172a; }
+    p, ul, ol, blockquote, pre, table { margin: 0.7em 0; }
+    ul,ol { padding-left: 1.35em; }
+    code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: #f3f4f6; padding: 0.12em 0.3em; border-radius: 4px; }
+    pre { background: #0b1020; color: #e5e7eb; border-radius: 8px; padding: 14px; overflow: auto; }
+    pre code { background: transparent; color: inherit; padding: 0; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th, td { border: 1px solid #d1d5db; padding: 8px 10px; vertical-align: top; }
+    th { background: #f9fafb; text-align: left; }
+    blockquote { margin-left: 0; padding: 10px 14px; border-left: 4px solid #9ca3af; background: #f8fafc; color: #374151; }
+    .callout-note { border-left-color: #2563eb; background: #eff6ff; }
+    .callout-important { border-left-color: #7c3aed; background: #f5f3ff; }
+    .callout-warning, .callout-caution { border-left-color: #b45309; background: #fffbeb; }
+    .callout-tip { border-left-color: #15803d; background: #f0fdf4; }
+    img { max-width: 100%; height: auto; display: block; margin: 10px auto; }
+    .mermaid { background: #ffffff; border-radius: 8px; padding: 6px; overflow: auto; }
+    .mermaid svg { max-width: 100%; height: auto; }
+    .mermaid-error { white-space: pre-wrap; background: #fff7ed; border: 1px solid #fdba74; color: #9a3412; border-radius: 8px; padding: 10px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    hr { border: 0; border-top: 1px solid #e5e7eb; margin: 1.25em 0; }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+</head>
+<body>
+  <div class="mk-wrap"><h1 id="co41-panduan-lengkap-depository-bank-registry">🏦 CO41 — Panduan Lengkap Depository Bank Registry</h1>
+<h2 id="sistem-manajemen-rekening-bank-koresponden-correspondent-fx">Sistem Manajemen Rekening Bank Koresponden (Correspondent FX)</h2>
+<hr>
+<h2 id="daftar-isi">Daftar Isi</h2>
+<ol>
+<li><a href="#1-penjelasan-untuk-orang-awam">Penjelasan untuk Orang Awam</a></li>
+<li><a href="#2-arsitektur-sistem">Arsitektur Sistem</a></li>
+<li><a href="#3-frontend--co41html">Frontend — CO41.html</a></li>
+<li><a href="#4-backend-entry--coo4100pc">Backend Entry — coo4100.pc</a></li>
+<li><a href="#5-backend-cancel--coo4800pc">Backend Cancel — coo4800.pc</a></li>
+<li><a href="#6-tis-xml-mapping">TIS XML Mapping</a></li>
+<li><a href="#7-database-tables">Database Tables</a></li>
+<li><a href="#8-skenario-dunia-nyata">Skenario Dunia Nyata</a></li>
+<li><a href="#9-daftar-error-codes">Daftar Error Codes</a></li>
+</ol>
+<hr>
+<h2 id="1-penjelasan-untuk-orang-awam">1. Penjelasan untuk Orang Awam</h2>
+<h3 id="apa-sih-modul-co41-ini">🤔 Apa Sih Modul CO41 Ini?</h3>
+<p>Bayangkan Anda punya <strong>Bank OK</strong> di Jakarta. Bank OK ingin bisa mengirim dan menerima uang dalam mata uang asing (USD, EUR, JPY, dll). Masalahnya, Bank OK tidak punya kantor di New York atau London. Jadi bagaimana caranya?</p>
+<p><strong>Jawabannya: Bank OK membuka &quot;rekening titipan&quot; di bank luar negeri.</strong></p>
+<p>Modul CO41 adalah <strong>sistem pencatatan rekening titipan</strong> tersebut — siapa bank-nya, di mana, mata uang apa, nomor rekeningnya berapa, dan berapa saldonya.</p>
+<h3 id="analogi-sederhana">🏦 Analogi Sederhana</h3>
+<pre><code class="language-">┌─────────────────────────────────────────────────────────────┐
+│                    DUNIA NYATA                              │
+│                                                             │
+│  Anda (individu) membuka rekening di Bank BCA              │
+│  → Anda punya &quot;buku tabungan&quot; yang mencatat saldo Anda     │
+│                                                             │
+│  Bank OK (bank) membuka rekening di Citibank New York       │
+│  → Bank OK punya &quot;DEPO ledger&quot; yang mencatat saldo mereka  │
+│                                                             │
+│  Modul CO41 = &quot;Sistem pendaftaran buku tabungan&quot; Bank OK    │
+│               di bank-bank luar negeri                      │
+└─────────────────────────────────────────────────────────────┘</code></pre><h3 id="apa-itu-nostro-dan-vostro">💱 Apa itu Nostro dan Vostro?</h3>
+<p>Ini adalah istilah perbankan internasional yang terdengar rumit, tapi sebenarnya sederhana:</p>
+<table>
+<thead>
+<tr>
+<th>Istilah</th>
+<th>Bahasa Latin</th>
+<th>Artinya</th>
+<th>Contoh</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Nostro</strong></td>
+<td>&quot;Milik Kita&quot;</td>
+<td>Rekening <strong>KITA</strong> di bank <strong>LAIN</strong></td>
+<td>Bank OK punya rekening USD di Citibank NY</td>
+</tr>
+<tr>
+<td><strong>Vostro</strong></td>
+<td>&quot;Milik Anda&quot;</td>
+<td>Rekening bank <strong>LAIN</strong> di <strong>KITA</strong></td>
+<td>Citibank punya rekening IDR di Bank OK</td>
+</tr>
+</tbody></table>
+<div class="mermaid">
+graph LR
+    subgraph "Bank OK Jakarta"
+        V["Vostro Account<br/>(Rekening Citibank<br/>di Bank OK)<br/>Mata uang: IDR"]
+    end
+    
+    subgraph "Citibank New York"
+        N["Nostro Account<br/>(Rekening Bank OK<br/>di Citibank)<br/>Mata uang: USD"]
+    end
+    
+    V -.->|"Citibank menitipkan<br/>uang IDR di sini"| N
+    N -.->|"Bank OK menitipkan<br/>uang USD di sini"| V
+</div><h3 id="contoh-transfer-dunia-nyata">🌍 Contoh Transfer Dunia Nyata</h3>
+<p><strong>Skenario: Pak Budi di Jakarta ingin kirim $10,000 ke Pak John di New York</strong></p>
+<div class="mermaid">
+sequenceDiagram
+    participant Budi as Pak Budi<br/>(Nasabah Bank OK)
+    participant OK as Bank OK<br/>(Jakarta)
+    participant DEPO as Nostro Account<br/>(Rek. Bank OK di Citibank)
+    participant Citi as Citibank<br/>(New York)
+    participant John as Pak John<br/>(Nasabah Citibank)
+
+    Budi->>OK: "Saya mau kirim $10,000 ke New York"
+    OK->>OK: Potong rekening Pak Budi (IDR)
+    OK->>DEPO: Instruksi: "Kurangi saldo Nostro $10,000"
+    DEPO->>Citi: SWIFT MT103 (Perintah transfer)
+    Citi->>John: Kredit rekening Pak John $10,000
+    Note over DEPO: Saldo Nostro berkurang $10,000
+</div><p><strong>Tanpa Nostro Account, transfer ini TIDAK BISA terjadi!</strong></p>
+<blockquote class="callout callout-important"><p>[!IMPORTANT]<br><strong>Inilah mengapa modul CO41 sangat penting</strong> — ia mendaftarkan dan mengelola &quot;rekening titipan&quot; (Nostro/Vostro) yang menjadi jembatan untuk semua transaksi valuta asing internasional.</p>
+</blockquote><h3 id="tiga-jenis-depo-dalam-sistem">📋 Tiga Jenis Depo dalam Sistem</h3>
+<table>
+<thead>
+<tr>
+<th>Kode</th>
+<th>Tipe</th>
+<th>Penjelasan</th>
+<th>Contoh</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>1</strong></td>
+<td><strong>Vostro</strong></td>
+<td>Bank asing menitipkan uang di Bank OK</td>
+<td>Citibank punya rekening IDR di Bank OK</td>
+</tr>
+<tr>
+<td><strong>2</strong></td>
+<td><strong>Nostro Domestic</strong></td>
+<td>Bank OK menitipkan uang di bank <strong>dalam negeri</strong></td>
+<td>Bank OK punya rekening USD di Bank Mandiri</td>
+</tr>
+<tr>
+<td><strong>3</strong></td>
+<td><strong>Nostro Overseas</strong></td>
+<td>Bank OK menitipkan uang di bank <strong>luar negeri</strong></td>
+<td>Bank OK punya rekening USD di Citibank NY</td>
+</tr>
+</tbody></table>
+<h3 id="tiga-operasi-yang-bisa-dilakukan">🔄 Tiga Operasi yang Bisa Dilakukan</h3>
+<table>
+<thead>
+<tr>
+<th>Operasi</th>
+<th>Kode</th>
+<th>Analogi Dunia Nyata</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Insert</strong></td>
+<td><code>proc_gb = 1</code></td>
+<td>Membuka rekening baru di bank koresponden</td>
+</tr>
+<tr>
+<td><strong>Update</strong></td>
+<td><code>proc_gb = 2</code></td>
+<td>Mengubah data rekening (misal: ganti nama kontak)</td>
+</tr>
+<tr>
+<td><strong>Terminate</strong></td>
+<td><code>proc_gb = 9</code></td>
+<td>Menutup rekening karena tidak dipakai lagi</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="2-arsitektur-sistem">2. Arsitektur Sistem</h2>
+<h3 id="21-gambaran-besar">2.1 Gambaran Besar</h3>
+<div class="mermaid">
+graph TB
+    subgraph "LAYER 1: Frontend (Browser IE)"
+        HTML["CO41.html<br/>ActiveX + JavaScript<br/>Layar entry data"]
+    end
+    
+    subgraph "LAYER 2: Middleware"
+        TIS1["COO4100.xml<br/>TIS Mapping (Entry)"]
+        TIS2["COO4800.xml<br/>TIS Mapping (Cancel)"]
+        CN["CNService<br/>WebtoB Adaptor"]
+        TUX["Tuxedo Server<br/>Transaction Manager"]
+    end
+    
+    subgraph "LAYER 3: Backend (Pro*C)"
+        SVC1["coo4100.pc<br/>COO4100 Service<br/>(Insert/Update/Terminate)"]
+        SVC2["coo4800.pc<br/>COO4800 Service<br/>(Cancel)"]
+    end
+    
+    subgraph "LAYER 4: Database (Oracle)"
+        DB1["afex_rch_base<br/>Depo Master"]
+        DB2["afex_rch_bal<br/>Depo Balance"]
+        DB3["acom_coh_base<br/>Corres Master"]
+    end
+    
+    HTML -->|"fActEntry()"| TIS1
+    HTML -->|"fActCancel()"| TIS2
+    TIS1 --> CN
+    TIS2 --> CN
+    CN --> TUX
+    TUX --> SVC1
+    TUX --> SVC2
+    SVC1 --> DB1
+    SVC1 --> DB2
+    SVC1 --> DB3
+    SVC2 --> DB1
+</div><h3 id="22-alur-data-end-to-end-entry">2.2 Alur Data End-to-End (Entry)</h3>
+<div class="mermaid">
+sequenceDiagram
+    participant User as 👤 Operator Bank
+    participant HTML as CO41.html
+    participant TIS as COO4100.xml
+    participant FML as FML Buffer
+    participant SVC as COO4100 (Pro*C)
+    participant DB as Oracle DB
+
+    User->>HTML: 1. Isi form (BIC, CCY, Account No, dll)
+    HTML->>HTML: 2. Validasi client-side (BIC 11 digit, dll)
+    HTML->>TIS: 3. fActEntry() → ivkEntry.Call()
+    TIS->>TIS: 4. Map 20 field HTML → FML field names
+    TIS->>FML: 5. Pack data ke FML buffer (153KB)
+    FML->>SVC: 6. Tuxedo route ke COO4100 service
+    
+    SVC->>SVC: 7. CO41_Clear() — Reset semua struct
+    SVC->>SVC: 8. CO41_Get() — Baca 20 field dari FML
+    SVC->>SVC: 9. CO41_1000_Inck() — 16 validasi input
+    SVC->>DB: 10. CO41E_2000_DBck() — Cek DB
+    DB-->>SVC: 11. Validasi BIC ada di acom_coh_base
+    SVC->>DB: 12. CO41E_3000_Set() — Generate DEPO code
+    SVC->>DB: 13. INSERT afex_rch_base
+    SVC->>DB: 14. INSERT afex_rch_bal (saldo awal)
+    SVC->>DB: 15. UPDATE acom_coh_base (link DEPO code)
+    SVC-->>HTML: 16. Return DEPO code (FOCO41_CD)
+    HTML->>User: 17. Tampilkan "등록 완료" (Registrasi selesai)
+</div><h3 id="23-file-yang-terlibat">2.3 File yang Terlibat</h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>File</th>
+<th>Tipe</th>
+<th>Ukuran</th>
+<th>Fungsi</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td><a href="file:///c:/Data/WOKEH-BANG/htm/co/CO41.html">CO41.html</a></td>
+<td>Frontend</td>
+<td>908 baris</td>
+<td>Layar entry untuk operator</td>
+</tr>
+<tr>
+<td>2</td>
+<td><a href="file:///c:/Data/WOKEH-BANG/src/co/coo4100.pc">coo4100.pc</a></td>
+<td>Backend</td>
+<td>904 baris</td>
+<td>Service entry/update/terminate</td>
+</tr>
+<tr>
+<td>3</td>
+<td><a href="file:///c:/Data/WOKEH-BANG/src/co/coo4800.pc">coo4800.pc</a></td>
+<td>Backend</td>
+<td>495 baris</td>
+<td>Service cancel</td>
+</tr>
+<tr>
+<td>4</td>
+<td><a href="file:///c:/Data/WOKEH-BANG/htm/tis/COO4100.xml">COO4100.xml</a></td>
+<td>Config</td>
+<td>54 baris</td>
+<td>Mapping field HTML↔FML (Entry)</td>
+</tr>
+<tr>
+<td>5</td>
+<td><a href="file:///c:/Data/WOKEH-BANG/htm/tis/COO4800.xml">COO4800.xml</a></td>
+<td>Config</td>
+<td>34 baris</td>
+<td>Mapping field HTML↔FML (Cancel)</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="3-frontend-co41html">3. Frontend — CO41.html</h2>
+<h3 id="31-layout-layar">3.1 Layout Layar</h3>
+<pre><code class="language-">┌──────────────────────────────────────────────────────────────────┐
+│ 🔍 Search Condition                                              │
+│ ┌──────────────────────────────────────────────────────────────┐ │
+│ │ Processing Type: ◉ Insert  ○ Update  ○ Terminate            │ │
+│ │ Depo Code: [____] [🔍]    Ccy: [USD ▼]                     │ │
+│ └──────────────────────────────────────────────────────────────┘ │
+│                                                                  │
+│ 📝 Result-Input Detail                                           │
+│ ┌──────────────────────────────────────────────────────────────┐ │
+│ │ Depo Type: ◉ Vostro  ○ Nostro(Domestic)  ○ Nostro(Overseas) │ │
+│ │ BIC Code:     [___________] [🔍]                            │ │
+│ │ Depo Name:    [_________________________________]           │ │
+│ │ Ctry Code:    [__] [🔍]  [Country Name________]            │ │
+│ │ Opening Date: [____/____/____] 📅                           │ │
+│ │ Depo Balance: [    0.00    ]                                │ │
+│ │ A/C No:       [_______________]                             │ │
+│ │ Others Info:  [_________________________________]           │ │
+│ │ Asset Code:   [______] [🔍] [Asset Name________]           │ │
+│ │ Liability:    [______] [🔍] [Liability Name____]           │ │
+│ │ Reg. Date:    [2026/04/09]                                  │ │
+│ │ Alt. Date:    [____/____/____]    Cif No:    [____________] │ │
+│ │ Branch No:    [210 ▼]             Bank A/C:  [____________] │ │
+│ │ After Term:   [____]                                        │ │
+│ │ Reconcile:    [Y/N ▼]                                       │ │
+│ └──────────────────────────────────────────────────────────────┘ │
+└──────────────────────────────────────────────────────────────────┘</code></pre><h3 id="32-penjelasan-setiap-field-untuk-orang-awam">3.2 Penjelasan Setiap Field (untuk Orang Awam)</h3>
+<table>
+<thead>
+<tr>
+<th>Field di Layar</th>
+<th>Analogi Dunia Nyata</th>
+<th>Contoh</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Processing Type</strong></td>
+<td>Mau buka baru, ubah, atau tutup rekening?</td>
+<td><code>Insert</code> = buka baru</td>
+</tr>
+<tr>
+<td><strong>Depo Code</strong></td>
+<td>Nomor unik identifikasi rekening (otomatis)</td>
+<td><code>3001</code></td>
+</tr>
+<tr>
+<td><strong>Ccy (Currency)</strong></td>
+<td>Mata uang rekening</td>
+<td><code>USD</code>, <code>EUR</code>, <code>JPY</code></td>
+</tr>
+<tr>
+<td><strong>Depo Type</strong></td>
+<td>Ini rekening siapa di mana?</td>
+<td>Nostro = rekening kita di bank lain</td>
+</tr>
+<tr>
+<td><strong>BIC Code</strong></td>
+<td>&quot;Alamat SWIFT&quot; bank koresponden (11 digit)</td>
+<td><code>CITIUS33XXX</code> (Citibank NY)</td>
+</tr>
+<tr>
+<td><strong>Depo Name</strong></td>
+<td>Nama bank tempat rekening dibuka</td>
+<td><code>CITIBANK N.A.</code></td>
+</tr>
+<tr>
+<td><strong>Ctry Code</strong></td>
+<td>Kode negara bank</td>
+<td><code>US</code> (Amerika), <code>GB</code> (Inggris)</td>
+</tr>
+<tr>
+<td><strong>Opening Date</strong></td>
+<td>Tanggal rekening dibuka</td>
+<td><code>2024/01/15</code></td>
+</tr>
+<tr>
+<td><strong>Depo Balance</strong></td>
+<td>Saldo saat ini</td>
+<td><code>1,250,000.00</code></td>
+</tr>
+<tr>
+<td><strong>A/C No</strong></td>
+<td>Nomor rekening di bank koresponden</td>
+<td><code>36829754</code></td>
+</tr>
+<tr>
+<td><strong>Asset Code</strong></td>
+<td>Kode akuntansi untuk pencatatan aset</td>
+<td><code>110201</code></td>
+</tr>
+<tr>
+<td><strong>Liability Code</strong></td>
+<td>Kode akuntansi untuk pencatatan kewajiban</td>
+<td><code>210301</code></td>
+</tr>
+<tr>
+<td><strong>Branch No</strong></td>
+<td>Cabang Bank OK yang mengelola</td>
+<td><code>210</code></td>
+</tr>
+<tr>
+<td><strong>Reconcile Y/N</strong></td>
+<td>Apakah rekonsiliasi otomatis (MT950)?</td>
+<td><code>Y</code> = Ya, <code>N</code> = Manual</td>
+</tr>
+<tr>
+<td><strong>After Termination</strong></td>
+<td>Jika ditutup, pindah ke DEPO code mana?</td>
+<td><code>3002</code></td>
+</tr>
+<tr>
+<td><strong>Cif No</strong></td>
+<td>Nomor identifikasi nasabah (Customer)</td>
+<td><code>123456</code></td>
+</tr>
+<tr>
+<td><strong>Bank A/C No</strong></td>
+<td>Nomor A/C tambahan</td>
+<td><code>ACC-001-USD</code></td>
+</tr>
+</tbody></table>
+<h3 id="33-validasi-client-side-javascript">3.3 Validasi Client-Side (JavaScript)</h3>
+<table>
+<thead>
+<tr>
+<th>Validasi</th>
+<th>Apa yang Dicek</th>
+<th>Mengapa Penting</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>BIC 8→11 digit</td>
+<td>Kalau user ketik 8 huruf, otomatis tambah <code>XXX</code></td>
+<td>BIC standar SWIFT selalu 11 karakter</td>
+</tr>
+<tr>
+<td>BIC check DB</td>
+<td>Cek apakah BIC terdaftar di <code>acom_coh_base</code></td>
+<td>Hanya bank koresponden yang terdaftar yang boleh</td>
+</tr>
+<tr>
+<td>Duplicate check</td>
+<td>Cek apakah kombinasi BIC+CCY sudah ada</td>
+<td>Mencegah pendaftaran ganda</td>
+</tr>
+<tr>
+<td>IDR auto confirm=N</td>
+<td>Kalau mata uang IDR, reconcile otomatis <code>N</code></td>
+<td>Rekening IDR tidak perlu reconcile SWIFT</td>
+</tr>
+<tr>
+<td>Vostro → confirm=N</td>
+<td>Kalau Vostro, reconcile otomatis <code>N</code></td>
+<td>Vostro dikelola bank asing, bukan kita</td>
+</tr>
+</tbody></table>
+<h3 id="34-koneksi-ke-backend">3.4 Koneksi ke Backend</h3>
+<pre><code class="language-">CO41.html
+  ├── ivkEntry (Entry/Update/Terminate)
+  │   ├── MapLocation = &quot;/tis/COO4100.xml&quot;
+  │   ├── ServiceName = &quot;COO4100&quot;
+  │   ├── Input: paramDSO (20 field)
+  │   └── Output: paramDSOOut → FOCO41_CD (DEPO code)
+  │
+  └── ivkCancel (Cancel)
+      ├── MapLocation = &quot;/tis/COO4800.xml&quot;
+      ├── ServiceName = &quot;COO4800&quot;
+      └── Input: paramDSOCancel (3 field: CD, CCY, BKCD)</code></pre><hr>
+<h2 id="4-backend-entry-coo4100pc">4. Backend Entry — coo4100.pc</h2>
+<h3 id="41-alur-fungsi-lifecycle">4.1 Alur Fungsi (Lifecycle)</h3>
+<div class="mermaid">
+flowchart TD
+    A["COO4100(transb)<br/>📥 Service dipanggil"] --> B["CO41_Clear()<br/>🧹 Reset semua variabel"]
+    B --> C["CO41_Get()<br/>📋 Baca 20 field dari FML"]
+    C --> D["CO41_1000_Inck()<br/>✅ Validasi 16 aturan input"]
+    D --> E["CO41E_2000_DBck()<br/>🔍 Cek database"]
+    E --> F["CO41E_3000_Set()<br/>💾 Simpan ke database"]
+    F --> G["CO41E_Put()<br/>📤 Kirim DEPO code ke client"]
+    G --> H["TPRETURN<br/>✨ Selesai!"]
+    
+    style A fill:#e1f5fe
+    style D fill:#fff3e0
+    style F fill:#e8f5e9
+    style H fill:#f3e5f5
+</div><h3 id="42-validasi-input-detail-co411000inck">4.2 Validasi Input Detail (CO41_1000_Inck)</h3>
+<p>16 aturan bisnis yang dicek sebelum data disimpan:</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Kode</th>
+<th>Apa yang Dicek</th>
+<th>Analogi Dunia Nyata</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td>1003</td>
+<td>Mata uang harus 3 huruf</td>
+<td>&quot;USD&quot;, &quot;EUR&quot; — bukan &quot;US&quot; atau &quot;Dollar&quot;</td>
+</tr>
+<tr>
+<td>2</td>
+<td>1004</td>
+<td>Mata uang harus valid (ada di code table)</td>
+<td>Tidak boleh asal ketik &quot;XYZ&quot;</td>
+</tr>
+<tr>
+<td>3</td>
+<td>1005</td>
+<td>Tipe proses harus 1, 2, atau 9</td>
+<td>Hanya bisa: Insert, Update, atau Terminate</td>
+</tr>
+<tr>
+<td>4</td>
+<td>1006</td>
+<td>Tipe Depo harus 1, 2, atau 3</td>
+<td>Hanya bisa: Vostro, Nostro Domistik, Nostro Overseas</td>
+</tr>
+<tr>
+<td>5</td>
+<td>1007</td>
+<td>BIC Code harus 11 karakter</td>
+<td>Alamat SWIFT bank koresponden wajib</td>
+</tr>
+<tr>
+<td>6</td>
+<td>1008</td>
+<td>BIC Code harus valid (ada di system)</td>
+<td>Bank yang dituju harus terdaftar</td>
+</tr>
+<tr>
+<td>7</td>
+<td>1009</td>
+<td>Nomor rekening wajib diisi</td>
+<td>Seperti buka tabungan — harus ada nomor rekening</td>
+</tr>
+<tr>
+<td>8</td>
+<td>1010</td>
+<td>Kode aset dan liabilitas wajib</td>
+<td>Untuk pencatatan pembukuan bank</td>
+</tr>
+<tr>
+<td>9</td>
+<td>1011</td>
+<td>Vostro: Asset Code harus mulai &#39;2&#39;</td>
+<td>Aturan akuntansi untuk rekening Vostro</td>
+</tr>
+<tr>
+<td>10</td>
+<td>1012</td>
+<td>Vostro: Liability Code harus mulai &#39;1&#39;</td>
+<td>Aturan akuntansi untuk rekening Vostro</td>
+</tr>
+<tr>
+<td>11</td>
+<td>1013</td>
+<td>Nostro: Asset Code harus mulai &#39;1&#39;</td>
+<td>Aturan akuntansi untuk rekening Nostro</td>
+</tr>
+<tr>
+<td>12</td>
+<td>1014</td>
+<td>Nostro: Liability Code harus mulai &#39;2&#39;</td>
+<td>Aturan akuntansi untuk rekening Nostro</td>
+</tr>
+<tr>
+<td>13</td>
+<td>1015</td>
+<td>DEPO code after termination harus cocok prefix</td>
+<td>Kalau tutup rekening, penggantinya harus tipe yang sama</td>
+</tr>
+<tr>
+<td>14</td>
+<td>1016</td>
+<td>Kode cabang wajib</td>
+<td>Harus jelas cabang mana yang mengelola</td>
+</tr>
+<tr>
+<td>15</td>
+<td>—</td>
+<td>Reconcile default = &quot;N&quot; jika kosong</td>
+<td>Auto-set untuk keamanan</td>
+</tr>
+</tbody></table>
+<blockquote class="callout callout-tip"><p>[!TIP]<br><strong>Aturan Akuntansi Nostro vs Vostro</strong>: </p>
+<ul>
+<li><strong>Nostro</strong> (uang kita di bank lain) = <strong>Aset</strong> bagi kita → kode aset harus dimulai &#39;1&#39; (aktiva)</li>
+<li><strong>Vostro</strong> (uang bank lain di kita) = <strong>Kewajiban</strong> bagi kita → kode liability harus dimulai &#39;1&#39; (hutang)</li>
+</ul>
+</blockquote><h3 id="43-auto-generate-depo-code-logika-paling-kompleks">4.3 Auto-Generate DEPO Code (Logika Paling Kompleks)</h3>
+<p>Saat mendaftarkan DEPO baru (<code>proc_gb = 1</code>), sistem <strong>otomatis membuat kode DEPO 4 digit</strong>:</p>
+<div class="mermaid">
+flowchart TD
+    A["User pilih Insert"] --> B{"Sudah ada DEPO<br/>dengan BIC + CCY sama?"}
+    B -->|Ya| C["Pakai DEPO code<br/>yang sudah ada"]
+    B -->|Tidak| D{"Ada DEPO lain<br/>dengan BIC sama?"}
+    D -->|Ya| E["Pakai DEPO code<br/>dari BIC yang sama"]
+    D -->|Tidak| F["Generate DEPO code baru"]
+    
+    F --> G{"Tipe DEPO?"}
+    G -->|"1 (Vostro)"| H["Prefix = 10"]
+    G -->|"2 (Nostro Dom)"| I["Prefix = 2 + kode cabang"]
+    G -->|"3 (Nostro Ovs)"| J["Prefix = 30"]
+    
+    H --> K["Cari MAX(CD)<br/>dengan prefix '10xx'"]
+    I --> K
+    J --> K
+    K --> L{"Ada data?"}
+    L -->|Tidak| M["CD = prefix + '01'<br/>Contoh: 1001, 3001"]
+    L -->|Ya| N["CD = MAX + 1<br/>Contoh: 1001→1002"]
+</div><p><strong>Contoh Kode DEPO yang Dihasilkan:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Tipe</th>
+<th>Prefix</th>
+<th>Kode Pertama</th>
+<th>Kode Kedua</th>
+<th>Kode Ketiga</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Vostro</td>
+<td><code>10</code></td>
+<td><code>1001</code></td>
+<td><code>1002</code></td>
+<td><code>1003</code></td>
+</tr>
+<tr>
+<td>Nostro Domestic (cab 2)</td>
+<td><code>22</code></td>
+<td><code>2201</code></td>
+<td><code>2202</code></td>
+<td><code>2203</code></td>
+</tr>
+<tr>
+<td>Nostro Overseas</td>
+<td><code>30</code></td>
+<td><code>3001</code></td>
+<td><code>3002</code></td>
+<td><code>3003</code></td>
+</tr>
+</tbody></table>
+<h3 id="44-operasi-database-co41e3000set">4.4 Operasi Database (CO41E_3000_Set)</h3>
+<h4 id="insert-procgb-1">Insert (proc_gb = 1)</h4>
+<pre><code class="language-sql">-- 1. Cek duplikat (BIC + CCY + Account Number)
+SELECT CD FROM afex_rch_base 
+ WHERE ccy = :ccy AND bkcd = :bkcd AND atten_no = :atten_no;
+-- Jika ada → Error 1030 &quot;Already Inserted&quot;
+
+-- 2. Generate DEPO code (lihat logika di atas)
+
+-- 3. INSERT rekening baru
+INSERT INTO afex_rch_base VALUES (:RCH_BASE);
+
+-- 4. INSERT saldo awal
+INSERT INTO afex_rch_bal VALUES (:RCH_BAL);
+-- saldo awal = today_bs, confirm = 'N'
+
+-- 5. Update corres master → link DEPO code
+UPDATE acom_coh_base 
+   SET depo_chk = '1', depo_cd = :depo_cd
+ WHERE co_bkcd = :bkcd;</code></pre><h4 id="update-procgb-2-atau-terminate-procgb-9">Update (proc_gb = 2) atau Terminate (proc_gb = 9)</h4>
+<pre><code class="language-sql">-- UPDATE semua kolom (16 field) berdasarkan PK
+UPDATE afex_rch_base
+   SET bkcd = :bkcd, bknm = :bknm, ctry_cd = :ctry_cd,
+       depo_il = :depo_il, vostro_yn = :yn, atten_no = :acct,
+       sts = :sts,  -- '0' untuk update, '9' untuk terminate
+       ...
+ WHERE ccy = :ccy AND cd = :cd;</code></pre><blockquote class="callout callout-warning"><p>[!WARNING]<br><strong>Terminate vs Cancel</strong>: Ada perbedaan penting!</p>
+<ul>
+<li><strong>Terminate</strong> (<code>proc_gb=9</code> di COO4100): Operator memilih &quot;Terminate&quot; → set <code>sts=&#39;9&#39;</code> — <strong>memerlukan saldo = 0</strong></li>
+<li><strong>Cancel</strong> (COO4800): Fungsi terpisah → set <code>sts=&#39;9&#39;</code> — juga memerlukan saldo = 0</li>
+</ul>
+</blockquote><h3 id="45-validasi-sebelum-terminate">4.5 Validasi Sebelum Terminate</h3>
+<p>Sebelum rekening bisa di-terminate, sistem mengecek:</p>
+<div class="mermaid">
+flowchart TD
+    A["User pilih Terminate"] --> B{"Rekening ada?"}
+    B -->|Tidak| C["❌ Error 1018:<br/>Depo code not found"]
+    B -->|Ya| D{"Status = '1'?<br/>(Sudah closed)"}
+    D -->|Ya| E["❌ Error 1021:<br/>Already Closed"]
+    D -->|Tidak| F{"Status = '9'?<br/>(Sudah cancelled)"}
+    F -->|Ya| G["❌ Error 1022:<br/>Already Canceled"]
+    F -->|Tidak| H{"Saldo terakhir = 0?"}
+    H -->|Tidak| I["❌ Error 1027:<br/>Balance is not zero"]
+    H -->|Ya| J["✅ Boleh terminate"]
+    
+    style C fill:#ffcdd2
+    style E fill:#ffcdd2
+    style G fill:#ffcdd2
+    style I fill:#ffcdd2
+    style J fill:#c8e6c9
+</div><blockquote class="callout callout-caution"><p>[!CAUTION]<br><strong>Aturan bisnis kritis</strong>: Rekening yang masih punya saldo <strong>TIDAK BISA ditutup</strong>. Saldo harus ditarik/dipindahkan dulu sampai nol.</p>
+</blockquote><hr>
+<h2 id="5-backend-cancel-coo4800pc">5. Backend Cancel — coo4800.pc</h2>
+<h3 id="51-perbedaan-entry-vs-cancel">5.1 Perbedaan Entry vs Cancel</h3>
+<table>
+<thead>
+<tr>
+<th>Aspek</th>
+<th>COO4100 (Entry)</th>
+<th>COO4800 (Cancel)</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Input</strong></td>
+<td>20 field</td>
+<td>3 field saja (CD, CCY, BKCD)</td>
+</tr>
+<tr>
+<td><strong>Operasi</strong></td>
+<td>Insert / Update / Terminate</td>
+<td>Cancel saja</td>
+</tr>
+<tr>
+<td><strong>SIS Log</strong></td>
+<td>Ada tapi <strong>disabled</strong> (<code>#if 0</code>)</td>
+<td><strong>Aktif</strong> — mencatat siapa membatalkan</td>
+</tr>
+<tr>
+<td><strong>Approval</strong></td>
+<td>Tidak ada</td>
+<td>Ada tapi <strong>disabled</strong> (<code>/* ... */</code>)</td>
+</tr>
+<tr>
+<td><strong>Output</strong></td>
+<td>DEPO code</td>
+<td>Tidak ada output</td>
+</tr>
+</tbody></table>
+<h3 id="52-alur-cancel">5.2 Alur Cancel</h3>
+<div class="mermaid">
+flowchart TD
+    A["COO4800 dipanggil"] --> B["CO48_Clear()"]
+    B --> C["CO48_Get()<br/>Baca CD, CCY, BKCD"]
+    C --> D["CO48_1000_Inck()<br/>Validasi 3 field"]
+    D --> E["CO48_2000_DBck()<br/>5 pengecekan database"]
+    E --> F["CO48_3000_Set()<br/>UPDATE sts='9'"]
+    F --> G["CO48_4000_SIS()<br/>Tulis audit log"]
+    G --> H["✅ Selesai"]
+</div><h3 id="53-lima-pengecekan-sebelum-cancel">5.3 Lima Pengecekan Sebelum Cancel</h3>
+<pre><code class="language-sql">-- 1. Cek rekening ada
+SELECT * FROM afex_rch_base WHERE ccy = :ccy AND cd = :cd;
+-- Jika bkcd kosong → Error 1005 &quot;not found&quot;
+
+-- 2. Cek belum dibatalkan
+-- Jika sts = '9' → Error 1006 &quot;already canceled&quot;
+
+-- 3. Cek balance record ada
+SELECT * FROM afex_rch_bal WHERE cd = :cd AND ccy = :ccy AND tr_il = :today;
+-- Jika kosong → Error 1007 &quot;balance not found&quot;
+
+-- 4. Cek balance belum cancelled
+-- Jika bal.sts = '9' → Error 1008 &quot;balance already canceled&quot;
+
+-- 5. Cek saldo = 0
+-- Jika shw_clbs != 0 → Error 1009 &quot;Balance exist — cannot cancel&quot;</code></pre><h3 id="54-sis-audit-log-jejak-audit">5.4 SIS Audit Log (Jejak Audit)</h3>
+<p>Cancel service menulis log audit lengkap ke sistem SIS (Security Information System):</p>
+<table>
+<thead>
+<tr>
+<th>Field SIS</th>
+<th>Nilai</th>
+<th>Arti</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>ysloggb</code></td>
+<td><code>&quot;1&quot;</code></td>
+<td>Normal log</td>
+</tr>
+<tr>
+<td><code>yscnlgb</code></td>
+<td><code>&quot;1&quot;</code></td>
+<td>Ini adalah transaksi pembatalan</td>
+</tr>
+<tr>
+<td><code>ysinpgb</code></td>
+<td><code>&quot;5&quot;</code></td>
+<td>Tipe transaksi = 5</td>
+</tr>
+<tr>
+<td><code>ysbrno</code></td>
+<td><code>G_FXFIG.ajum</code></td>
+<td>Cabang yang melakukan</td>
+</tr>
+<tr>
+<td><code>yscntgb</code></td>
+<td><code>&quot;1&quot;</code></td>
+<td>Dihitung sebagai workload</td>
+</tr>
+</tbody></table>
+<blockquote class="callout callout-note"><p>[!NOTE]<br><strong>Mengapa Cancel punya SIS tapi Entry tidak?</strong> Karena pembatalan rekening adalah operasi <strong>berisiko tinggi</strong> — harus ada jejak audit siapa yang membatalkan, kapan, dan dari cabang mana.</p>
+</blockquote><hr>
+<h2 id="6-tis-xml-mapping">6. TIS XML Mapping</h2>
+<h3 id="61-coo4100xml-entry-mapping-20-input-1-output">6.1 COO4100.xml — Entry Mapping (20 Input → 1 Output)</h3>
+<p>TIS (Transaction Integration Service) berfungsi sebagai &quot;penerjemah&quot; antara HTML dan backend:</p>
+<pre><code class="language-">HTML Form Field          →  FML Field Name      →  Tipe Data
+─────────────────────────────────────────────────────────────
+txtDepo_Cd               →  FICO41_CD            →  String(6)
+cbbDepo_Ccy              →  FICO41_CCY           →  String(3)
+Proc_gb (radio)          →  FICO41_PROC_GB       →  String(1)
+txtDepo_Bkcd             →  FICO41_BKCD          →  String(11)
+txtDepo_Nm               →  FICO41_BKNM          →  String(35)
+Depo_Type (radio)        →  FICO41_DEPO_TYPE     →  String(1)
+txtCtry_Cd               →  FICO41_CTRY_CD       →  String(2)
+dtpDepo_IL               →  FICO41_DEPO_IL       →  Date(10)
+cedToday_Bs              →  FICO41_TODAY_BS       →  Double(14.2)
+txtAcct_No               →  FICO41_ATTEN_NO      →  String(35)
+txtDepo_Etc1             →  FICO41_DEPO_ETC1     →  String(60)
+txtDepo_Etc2             →  FICO41_DEPO_ETC2     →  String(60)
+txtDepo_Etc3             →  FICO41_DEPO_ETC3     →  String(60)
+txtBok_bs_acct           →  FICO41_CBS_CD        →  String(6)
+txtBok_bs_liab           →  FICO41_DBS_CD        →  String(6)
+dtpMake_IL               →  FICO41_MAKE_IL       →  Date(10)
+dtpChng_IL               →  FICO41_CHNG_IL       →  Date(10)
+cbbBr_No                 →  FICO41_BR_NO         →  String(3)
+txtAf_Cd                 →  FICO41_AF_CD         →  String(4)
+cbbConfirm_YN            →  FICO11_TC_YN         →  String(1)
+─────────────────────────────────────────────────────────────
+OUTPUT: FOCO41_CD       ←  Generated DEPO code  ←  String(4)</code></pre><h3 id="62-coo4800xml-cancel-mapping-3-input-0-output">6.2 COO4800.xml — Cancel Mapping (3 Input → 0 Output)</h3>
+<pre><code class="language-">HTML Form Field          →  FML Field Name      →  Tipe Data
+─────────────────────────────────────────────────────────────
+txtDepo_Cd               →  FICO48_CD            →  String(6)
+cbbDepo_Ccy              →  FICO48_CCY           →  String(3)
+txtDepo_Bkcd             →  FICO48_BKCD          →  String(11)
+─────────────────────────────────────────────────────────────
+OUTPUT: (tidak ada)</code></pre><h3 id="63-konfigurasi-koneksi">6.3 Konfigurasi Koneksi</h3>
+<pre><code class="language-xml">&lt;BusinessLayer hostlang=&quot;C&quot;/&gt;           &lt;!-- Backend ditulis dalam C (Pro*C) --&gt;
+&lt;Platform kind=&quot;IBM_GATEWAY&quot;&gt;
+  &lt;DefaultUrl path=&quot;http://127.0.0.1/tis/&quot;/&gt;
+  &lt;InOut method=&quot;Request_Reply&quot;/&gt;        &lt;!-- Synchronous call --&gt;
+&lt;/Platform&gt;
+&lt;Implementation kind=&quot;CoreBankBP&quot;&gt;
+  &lt;InOut method=&quot;TCPIP-SOCKET&quot;/&gt;         &lt;!-- Socket connection --&gt;
+  &lt;HostInfo ipaddr=&quot;127.0.0.1&quot; port=&quot;2000&quot;/&gt;
+&lt;/Implementation&gt;</code></pre><hr>
+<h2 id="7-database-tables">7. Database Tables</h2>
+<h3 id="71-afexrchbase-depository-master-buku-induk-rekening">7.1 AFEX_RCH_BASE — Depository Master (Buku Induk Rekening)</h3>
+<blockquote><p><strong>Analogi</strong>: Ini seperti &quot;kartu nasabah&quot; yang mencatat semua informasi rekening</p>
+</blockquote><table>
+<thead>
+<tr>
+<th>#</th>
+<th>Kolom</th>
+<th>Tipe</th>
+<th>Penjelasan Awam</th>
+<th>Contoh</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td><code>cd</code></td>
+<td>CHAR(4)</td>
+<td><strong>Nomor DEPO</strong> (auto-generated)</td>
+<td><code>3001</code></td>
+</tr>
+<tr>
+<td>2</td>
+<td><code>ccy</code></td>
+<td>CHAR(3)</td>
+<td><strong>Mata uang</strong></td>
+<td><code>USD</code></td>
+</tr>
+<tr>
+<td>3</td>
+<td><code>bkcd</code></td>
+<td>CHAR(11)</td>
+<td><strong>Alamat SWIFT bank</strong></td>
+<td><code>CITIUS33XXX</code></td>
+</tr>
+<tr>
+<td>4</td>
+<td><code>bknm</code></td>
+<td>VARCHAR(35)</td>
+<td><strong>Nama bank</strong></td>
+<td><code>CITIBANK N.A.</code></td>
+</tr>
+<tr>
+<td>5</td>
+<td><code>depo_type</code></td>
+<td>CHAR(1)</td>
+<td><strong>Tipe rekening</strong></td>
+<td><code>3</code> (Nostro Overseas)</td>
+</tr>
+<tr>
+<td>6</td>
+<td><code>ctry_cd</code></td>
+<td>CHAR(2)</td>
+<td><strong>Negara</strong></td>
+<td><code>US</code></td>
+</tr>
+<tr>
+<td>7</td>
+<td><code>depo_il</code></td>
+<td>DATE</td>
+<td><strong>Tanggal buka</strong></td>
+<td><code>2024-01-15</code></td>
+</tr>
+<tr>
+<td>8</td>
+<td><code>vostro_yn</code></td>
+<td>CHAR(1)</td>
+<td><strong>Ini Vostro?</strong></td>
+<td><code>N</code> (bukan, ini Nostro)</td>
+</tr>
+<tr>
+<td>9</td>
+<td><code>atten_no</code></td>
+<td>VARCHAR(35)</td>
+<td><strong>Nomor rekening</strong></td>
+<td><code>36829754</code></td>
+</tr>
+<tr>
+<td>10</td>
+<td><code>sts</code></td>
+<td>CHAR(1)</td>
+<td><strong>Status</strong>: 0=Aktif, 9=Batal</td>
+<td><code>0</code></td>
+</tr>
+<tr>
+<td>11</td>
+<td><code>cbs_cd</code></td>
+<td>VARCHAR(6)</td>
+<td><strong>Kode akuntansi debit</strong></td>
+<td><code>110201</code></td>
+</tr>
+<tr>
+<td>12</td>
+<td><code>dbs_cd</code></td>
+<td>VARCHAR(6)</td>
+<td><strong>Kode akuntansi kredit</strong></td>
+<td><code>210301</code></td>
+</tr>
+<tr>
+<td>13</td>
+<td><code>mng_br</code></td>
+<td>VARCHAR(3)</td>
+<td><strong>Cabang pengelola</strong></td>
+<td><code>210</code></td>
+</tr>
+<tr>
+<td>14</td>
+<td><code>af_cd</code></td>
+<td>VARCHAR(4)</td>
+<td><strong>DEPO pengganti</strong> (jika ditutup)</td>
+<td><code>3002</code></td>
+</tr>
+<tr>
+<td>15</td>
+<td><code>recon_yn</code></td>
+<td>CHAR(1)</td>
+<td><strong>Auto-reconcile?</strong></td>
+<td><code>Y</code></td>
+</tr>
+<tr>
+<td>16</td>
+<td><code>op_no</code></td>
+<td>VARCHAR(7)</td>
+<td><strong>ID operator</strong></td>
+<td><code>KIM1234</code></td>
+</tr>
+<tr>
+<td>17</td>
+<td><code>make_il</code></td>
+<td>VARCHAR(10)</td>
+<td><strong>Tanggal dibuat</strong></td>
+<td><code>2024/01/15</code></td>
+</tr>
+<tr>
+<td>18</td>
+<td><code>chng_il</code></td>
+<td>VARCHAR(10)</td>
+<td><strong>Tanggal diubah</strong></td>
+<td><code>2024/03/20</code></td>
+</tr>
+</tbody></table>
+<blockquote><p><strong>Primary Key</strong>: <code>cd</code> + <code>ccy</code></p>
+</blockquote><h3 id="72-afexrchbal-depository-balance-saldo-harian">7.2 AFEX_RCH_BAL — Depository Balance (Saldo Harian)</h3>
+<blockquote><p><strong>Analogi</strong>: Ini seperti &quot;buku mutasi&quot; yang mencatat saldo setiap hari</p>
+</blockquote><table>
+<thead>
+<tr>
+<th>#</th>
+<th>Kolom</th>
+<th>Tipe</th>
+<th>Penjelasan</th>
+<th>Contoh</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td><code>cd</code></td>
+<td>CHAR(4)</td>
+<td>Nomor DEPO</td>
+<td><code>3001</code></td>
+</tr>
+<tr>
+<td>2</td>
+<td><code>ccy</code></td>
+<td>CHAR(3)</td>
+<td>Mata uang</td>
+<td><code>USD</code></td>
+</tr>
+<tr>
+<td>3</td>
+<td><code>tr_il</code></td>
+<td>VARCHAR(10)</td>
+<td>Tanggal transaksi</td>
+<td><code>2024/03/20</code></td>
+</tr>
+<tr>
+<td>4</td>
+<td><code>shw_opbs</code></td>
+<td>NUMBER</td>
+<td>Saldo awal hari (shadow)</td>
+<td><code>1,000,000.00</code></td>
+</tr>
+<tr>
+<td>5</td>
+<td><code>shw_clbs</code></td>
+<td>NUMBER</td>
+<td>Saldo akhir hari (shadow)</td>
+<td><code>1,050,000.00</code></td>
+</tr>
+<tr>
+<td>6</td>
+<td><code>act_opbs</code></td>
+<td>NUMBER</td>
+<td>Saldo awal (actual)</td>
+<td><code>1,000,000.00</code></td>
+</tr>
+<tr>
+<td>7</td>
+<td><code>act_clbs</code></td>
+<td>NUMBER</td>
+<td>Saldo akhir (actual)</td>
+<td><code>1,050,000.00</code></td>
+</tr>
+<tr>
+<td>8</td>
+<td><code>shw_confirm_yn</code></td>
+<td>CHAR(1)</td>
+<td>Sudah dikonfirmasi?</td>
+<td><code>N</code></td>
+</tr>
+<tr>
+<td>9</td>
+<td><code>sts</code></td>
+<td>CHAR(1)</td>
+<td>Status</td>
+<td><code>0</code></td>
+</tr>
+</tbody></table>
+<h3 id="73-hubungan-antar-tabel">7.3 Hubungan Antar Tabel</h3>
+<div class="mermaid">
+erDiagram
+    ACOM_COH_BASE ||--o{ AFEX_RCH_BASE : "1 bank → banyak DEPO"
+    AFEX_RCH_BASE ||--o{ AFEX_RCH_BAL : "1 DEPO → saldo harian"
+    AFEX_RCH_BASE ||--o{ AFEX_RCH_PEND : "1 DEPO → transaksi pending"
+    
+    ACOM_COH_BASE {
+        char11 co_bkcd PK "BIC Code bank koresponden"
+        char4 depo_cd "Link ke DEPO"
+        char1 depo_chk "1=Punya DEPO"
+    }
+    
+    AFEX_RCH_BASE {
+        char4 cd PK "DEPO Code (auto)"
+        char3 ccy PK "Currency"
+        char11 bkcd FK "BIC Code"
+        varchar35 bknm "Bank Name"
+        char1 depo_type "1=V, 2=ND, 3=NO"
+        varchar35 atten_no "Account Number"
+        char1 sts "0=Active, 9=Cancel"
+    }
+    
+    AFEX_RCH_BAL {
+        char4 cd PK "DEPO Code"
+        char3 ccy PK "Currency"
+        varchar10 tr_il PK "Transaction Date"
+        number shw_clbs "Shadow Closing Balance"
+    }
+    
+    AFEX_RCH_PEND {
+        char4 cd PK "DEPO Code"
+        char3 ccy PK "Currency"
+        number amount "Pending Amount"
+    }
+</div><hr>
+<h2 id="8-skenario-dunia-nyata">8. Skenario Dunia Nyata</h2>
+<h3 id="skenario-1-buka-rekening-usd-di-citibank-new-york">📖 Skenario 1: Buka Rekening USD di Citibank New York</h3>
+<p><strong>Konteks</strong>: Bank OK ingin bisa mengirim/menerima USD via Citibank.</p>
+<p><strong>Langkah di Sistem CO41:</strong></p>
+<ol>
+<li>Operator pilih <strong>Processing Type = Insert</strong></li>
+<li>Isi data:<ul>
+<li>Ccy = <code>USD</code></li>
+<li>Depo Type = <code>Nostro (Overseas)</code> — karena rekening Bank OK di bank luar negeri</li>
+<li>BIC Code = <code>CITIUS33XXX</code></li>
+<li>Depo Name = <code>CITIBANK N.A.</code></li>
+<li>Country = <code>US</code></li>
+<li>A/C No = <code>36829754</code></li>
+<li>Asset Code = <code>110201</code> (harus mulai &#39;1&#39; karena Nostro = aset)</li>
+<li>Liability Code = <code>210301</code> (harus mulai &#39;2&#39;)</li>
+<li>Branch = <code>210</code></li>
+<li>Reconcile = <code>Y</code> (Citibank kirim MT950 otomatis)</li>
+</ul>
+</li>
+<li>Klik Submit</li>
+<li>Sistem otomatis generate DEPO code: <code>3001</code></li>
+<li>Saldo awal: <code>$0.00</code></li>
+<li>Bank koresponden <code>acom_coh_base</code> di-update: <code>depo_chk = 1</code></li>
+</ol>
+<h3 id="skenario-2-update-informasi-rekening">📖 Skenario 2: Update Informasi Rekening</h3>
+<p><strong>Konteks</strong>: Citibank pindah cabang, nomor rekening berubah.</p>
+<ol>
+<li>Operator pilih <strong>Processing Type = Update</strong></li>
+<li>Masukkan DEPO Code <code>3001</code>, CCY <code>USD</code></li>
+<li>Sistem otomatis load data lama</li>
+<li>Ubah A/C No dari <code>36829754</code> ke <code>48201573</code></li>
+<li>Klik Submit → data di-UPDATE</li>
+</ol>
+<h3 id="skenario-3-tutup-rekening-terminate">📖 Skenario 3: Tutup Rekening (Terminate)</h3>
+<p><strong>Konteks</strong>: Bank OK tidak lagi menggunakan Citibank, pindah ke JP Morgan.</p>
+<ol>
+<li><strong>Prasyarat</strong>: Saldo harus nol! ($0.00)<ul>
+<li>Jika saldo masih ada → Error: <em>&quot;Balance is not zero&quot;</em></li>
+</ul>
+</li>
+<li>Operator pilih <strong>Processing Type = Terminate</strong></li>
+<li>DEPO Code = <code>3001</code>, CCY = <code>USD</code></li>
+<li>Isi &quot;After Termination&quot; = <code>3002</code> (DEPO baru di JP Morgan)</li>
+<li>Submit → status berubah ke <code>sts = &#39;9&#39;</code> (terminated)</li>
+</ol>
+<h3 id="skenario-4-cancel-pembatalan-registrasi">📖 Skenario 4: Cancel (Pembatalan Registrasi)</h3>
+<p><strong>Konteks</strong>: Operator salah daftarkan rekening, perlu dibatalkan.</p>
+<ol>
+<li>Operator masuk mode <strong>Cancel</strong> (<code>OPStatus = 1</code>)</li>
+<li>Masukkan DEPO Code, CCY, BIC</li>
+<li>Sistem cek:<ul>
+<li>✅ Rekening ada</li>
+<li>✅ Belum di-cancel sebelumnya</li>
+<li>✅ Saldo = 0</li>
+</ul>
+</li>
+<li>Submit → Cancel → SIS audit log ditulis</li>
+<li>Status <code>sts = &#39;9&#39;</code></li>
+</ol>
+<hr>
+<h2 id="9-daftar-error-codes">9. Daftar Error Codes</h2>
+<h3 id="91-coo4100-entry-service-41-error-codes">9.1 COO4100 — Entry Service (41 Error Codes)</h3>
+<table>
+<thead>
+<tr>
+<th>Kode</th>
+<th>Tahap</th>
+<th>Pesan</th>
+<th>Penjelasan Awam</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1001</td>
+<td>Init</td>
+<td>cmg_base error</td>
+<td>Sistem tidak bisa mulai</td>
+</tr>
+<tr>
+<td>1003</td>
+<td>Inck</td>
+<td>Ccy Code is Mandatory</td>
+<td>Mata uang wajib diisi (3 huruf)</td>
+</tr>
+<tr>
+<td>1004</td>
+<td>Inck</td>
+<td>Currency code invalid</td>
+<td>Mata uang tidak dikenal sistem</td>
+</tr>
+<tr>
+<td>1005</td>
+<td>Inck</td>
+<td>Processing Type Error</td>
+<td>Hanya boleh 1, 2, atau 9</td>
+</tr>
+<tr>
+<td>1006</td>
+<td>Inck</td>
+<td>Depo Type Error</td>
+<td>Hanya boleh 1, 2, atau 3</td>
+</tr>
+<tr>
+<td>1007</td>
+<td>Inck</td>
+<td>BIC Code Mandatory</td>
+<td>Kode SWIFT bank wajib (11 digit)</td>
+</tr>
+<tr>
+<td>1008</td>
+<td>Inck</td>
+<td>BIC Code invalid</td>
+<td>Bank tidak terdaftar</td>
+</tr>
+<tr>
+<td>1009</td>
+<td>Inck</td>
+<td>Account Number mandatory</td>
+<td>Nomor rekening wajib</td>
+</tr>
+<tr>
+<td>1010</td>
+<td>Inck</td>
+<td>Asset/Liability mandatory</td>
+<td>Kode akuntansi wajib</td>
+</tr>
+<tr>
+<td>1011</td>
+<td>Inck</td>
+<td>Asset Code invalid (Vostro)</td>
+<td>Vostro harus mulai &#39;2&#39;</td>
+</tr>
+<tr>
+<td>1012</td>
+<td>Inck</td>
+<td>Liability Code invalid (Vostro)</td>
+<td>Vostro harus mulai &#39;1&#39;</td>
+</tr>
+<tr>
+<td>1013</td>
+<td>Inck</td>
+<td>Asset Code invalid (Nostro)</td>
+<td>Nostro harus mulai &#39;1&#39;</td>
+</tr>
+<tr>
+<td>1014</td>
+<td>Inck</td>
+<td>Liability Code invalid (Nostro)</td>
+<td>Nostro harus mulai &#39;2&#39;</td>
+</tr>
+<tr>
+<td>1015</td>
+<td>Inck</td>
+<td>Depo code mismatch after term</td>
+<td>Kode pengganti tidak cocok tipe</td>
+</tr>
+<tr>
+<td>1016</td>
+<td>Inck</td>
+<td>Branch Code mandatory</td>
+<td>Cabang pengelola wajib</td>
+</tr>
+<tr>
+<td>1017</td>
+<td>DBck</td>
+<td>After-term Depo invalid</td>
+<td>Rekening pengganti tidak ada</td>
+</tr>
+<tr>
+<td>1018</td>
+<td>DBck</td>
+<td>Depo code not found</td>
+<td>Rekening tidak ditemukan</td>
+</tr>
+<tr>
+<td>1021</td>
+<td>DBck</td>
+<td>Already Closed</td>
+<td>Rekening sudah ditutup</td>
+</tr>
+<tr>
+<td>1022</td>
+<td>DBck</td>
+<td>Already Canceled</td>
+<td>Rekening sudah dibatalkan</td>
+</tr>
+<tr>
+<td>1027</td>
+<td>DBck</td>
+<td><strong>Balance not zero</strong></td>
+<td><strong>Saldo belum nol — tidak bisa tutup!</strong></td>
+</tr>
+<tr>
+<td>1030</td>
+<td>Set</td>
+<td>Already Inserted</td>
+<td>Kombinasi BIC+CCY+Account sudah ada</td>
+</tr>
+<tr>
+<td>1034</td>
+<td>Set</td>
+<td>DEPO Code Max Error</td>
+<td>Kode DEPO sudah penuh (99)</td>
+</tr>
+<tr>
+<td>1035</td>
+<td>Set</td>
+<td>INSERT FAIL</td>
+<td>Gagal simpan data</td>
+</tr>
+<tr>
+<td>1036</td>
+<td>Set</td>
+<td>Balance INSERT FAIL</td>
+<td>Gagal simpan saldo awal</td>
+</tr>
+<tr>
+<td>1037</td>
+<td>Set</td>
+<td>Corres bank not found</td>
+<td>Bank koresponden tidak terdaftar</td>
+</tr>
+<tr>
+<td>1039</td>
+<td>Set</td>
+<td>Corres UPDATE FAIL</td>
+<td>Gagal update data koresponden</td>
+</tr>
+<tr>
+<td>1040</td>
+<td>Set</td>
+<td>UPDATE FAIL</td>
+<td>Gagal update data</td>
+</tr>
+<tr>
+<td>1041</td>
+<td>SIS</td>
+<td>SIS log error</td>
+<td>Gagal tulis audit log</td>
+</tr>
+</tbody></table>
+<h3 id="92-coo4800-cancel-service-14-error-codes">9.2 COO4800 — Cancel Service (14 Error Codes)</h3>
+<table>
+<thead>
+<tr>
+<th>Kode</th>
+<th>Tahap</th>
+<th>Pesan</th>
+<th>Penjelasan Awam</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1001</td>
+<td>Init</td>
+<td>cmg_base error</td>
+<td>Sistem tidak bisa mulai</td>
+</tr>
+<tr>
+<td>1002</td>
+<td>Inck</td>
+<td>BIC must be 11 chars</td>
+<td>Kode SWIFT wajib 11 digit</td>
+</tr>
+<tr>
+<td>1003</td>
+<td>Inck</td>
+<td>Depo Code must be 4 chars</td>
+<td>Kode DEPO wajib 4 digit</td>
+</tr>
+<tr>
+<td>1004</td>
+<td>Inck</td>
+<td>CCY must be 3 chars</td>
+<td>Mata uang wajib 3 huruf</td>
+</tr>
+<tr>
+<td>1005</td>
+<td>DBck</td>
+<td>Depo not found</td>
+<td>Rekening tidak ditemukan</td>
+</tr>
+<tr>
+<td>1006</td>
+<td>DBck</td>
+<td>Already canceled</td>
+<td>Sudah dibatalkan sebelumnya</td>
+</tr>
+<tr>
+<td>1007</td>
+<td>DBck</td>
+<td>Balance info not found</td>
+<td>Data saldo tidak ditemukan</td>
+</tr>
+<tr>
+<td>1008</td>
+<td>DBck</td>
+<td>Balance already canceled</td>
+<td>Saldo sudah dibatalkan</td>
+</tr>
+<tr>
+<td>1009</td>
+<td>DBck</td>
+<td><strong>Balance exists</strong></td>
+<td><strong>Masih ada saldo — tidak bisa cancel!</strong></td>
+</tr>
+<tr>
+<td>1010</td>
+<td>DBck</td>
+<td>Approval error</td>
+<td>Gagal minta persetujuan atasan</td>
+</tr>
+<tr>
+<td>1011</td>
+<td>Set</td>
+<td>UPDATE FAIL</td>
+<td>Gagal update status</td>
+</tr>
+<tr>
+<td>1012</td>
+<td>SIS</td>
+<td>SIS log error</td>
+<td>Gagal tulis audit log</td>
+</tr>
+<tr>
+<td>1013</td>
+<td>Pend</td>
+<td>Pend select error</td>
+<td>Gagal cek transaksi pending</td>
+</tr>
+<tr>
+<td>1014</td>
+<td>Pend</td>
+<td>Pending transactions exist</td>
+<td>Ada transaksi belum selesai</td>
+</tr>
+</tbody></table>
+<blockquote class="callout callout-important"><p>[!IMPORTANT]<br><strong>Error paling umum di lapangan</strong>: Error <strong>1009</strong> dan <strong>1027</strong> — operator mencoba menutup/membatalkan rekening yang masih punya saldo. Solusinya: pindahkan saldo dulu ke rekening lain, baru tutup.</p>
+</blockquote></div>
+  <script>
+    mermaid.initialize({ startOnLoad: false, theme: 'neutral', securityLevel: 'loose' });
+    mermaid.run({ querySelector: '.mk-wrap .mermaid', suppressErrors: true }).catch(function(){});
+  </script>
+</body>
+</html>
